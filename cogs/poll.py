@@ -1,6 +1,6 @@
-from ink.core import squidcommand
-from discord.ext import commands
 import discord
+from discord.ext import commands
+from ink.core import squidcommand
 
 
 def to_emoji(c):

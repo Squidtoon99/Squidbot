@@ -1,8 +1,9 @@
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
-from asyncio import set_event_loop
-from discord.ext.commands import Cog
 import traceback
+from asyncio import set_event_loop
+
+from discord.ext.commands import Cog
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
 
 __all__ = (
     "CustomEventHandler",

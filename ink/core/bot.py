@@ -1,15 +1,16 @@
+import asyncio
 import inspect
+import io
+import logging
+import traceback
+import types
+
 import discord
 from discord.ext import commands
 from discord.ext.commands import errors
-import types
-import asyncio
-from jishaku.repl import AsyncCodeExecutor, all_inspections
 from jishaku.functools import AsyncSender
 from jishaku.paginators import PaginatorInterface, WrappedPaginator
-import logging, traceback
-import io
-
+from jishaku.repl import AsyncCodeExecutor, all_inspections
 from jishaku.repl.scope import Scope
 
 __all__ = ("SquidBot",)

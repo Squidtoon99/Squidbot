@@ -1,10 +1,11 @@
-import inspect
-from discord.ext.commands import Command, CommandError, CommandInvokeError
-from discord.ext.commands.cooldowns import CooldownMapping
-import functools
 import asyncio
+import functools
+import inspect
 from typing import Optional
+
+from discord.ext.commands import Command, CommandError, CommandInvokeError
 from discord.ext.commands._types import _BaseCommand
+from discord.ext.commands.cooldowns import CooldownMapping
 
 __all__ = ("SquidCommand", "squidcommand")
 

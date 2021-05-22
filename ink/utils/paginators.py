@@ -1,7 +1,9 @@
-from discord.ext.commands import *
-from typing import Iterable, Optional
-from discord import *
 import asyncio
+import logging
+from typing import Iterable, Optional
+
+from discord import Embed, Member, Reaction, User
+from discord.ext.commands import CommandError, Context, Paginator
 
 FIRST_EMOJI = "\u23EE"  # [:track_previous:]
 LEFT_EMOJI = "\u2B05"  # [:arrow_left:]

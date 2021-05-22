@@ -1,15 +1,14 @@
 import traceback
-from discord.ext.commands import (
-    Cog,
-    has_guild_permissions,
-    bot_has_guild_permissions,
-    CommandError,
-    Greedy,
-)
-from ink.utils.converters import TextMember
+
+from discord import Color, Embed, HTTPException, User
+from discord.ext.commands import (Cog, CommandError, Greedy,
+                                  bot_has_guild_permissions,
+                                  has_guild_permissions)
 from ink.core import squidcommand
+from ink.utils.converters import TextMember
 from ink.utils.paginators import LinePaginator
-from discord import Color, Embed, User, HTTPException
+
+
 # x
 class Moderation(Cog):
     def __init__(self, bot):
