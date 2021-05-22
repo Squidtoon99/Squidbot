@@ -1,9 +1,13 @@
 import traceback
 
 from discord import Color, Embed, HTTPException, User
-from discord.ext.commands import (Cog, CommandError, Greedy,
-                                  bot_has_guild_permissions,
-                                  has_guild_permissions)
+from discord.ext.commands import (
+    Cog,
+    CommandError,
+    Greedy,
+    bot_has_guild_permissions,
+    has_guild_permissions,
+)
 from ink.core import squidcommand
 from ink.utils.converters import TextMember
 from ink.utils.paginators import LinePaginator
