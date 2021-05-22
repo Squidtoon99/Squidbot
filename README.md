@@ -1,2 +1,2 @@
 # Squidbot
-Fun modules that I've built and want to open-source
+A collection of fun-to-make cogs and my "what if" ideas.
