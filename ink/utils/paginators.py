@@ -147,7 +147,7 @@ class LinePaginator(Paginator):
                         # Reaction is one of the pagination emotes
                         reaction_.emoji in PAGINATION_EMOJI,
                         # Reaction was not made by the Bot
-                        user_.bot != True,
+                        user_.bot is not True,
                         # There were no restrictions
                         no_restrictions,
                     )
