@@ -1,9 +1,16 @@
 import traceback
-from discord.ext.commands import Cog, has_guild_permissions, bot_has_guild_permissions, CommandError,Greedy
+from discord.ext.commands import (
+    Cog,
+    has_guild_permissions,
+    bot_has_guild_permissions,
+    CommandError,
+    Greedy,
+)
 from ink.utils.converters import TextMember
 from ink.core import squidcommand
 from ink.utils.paginators import LinePaginator
 from discord import Color, Embed, User
+
 # x
 class Moderation(Cog):
     def __init__(self, bot):
@@ -39,9 +46,8 @@ class Moderation(Cog):
             ) from e
         else:
             yield Embed(
-                    description=f"Successfully kicked {user.name}", color=Color.green()
-                )
-            
+                description=f"Successfully kicked {user.name}", color=Color.green()
+            )
 
     @squidcommand("ban")
     @has_guild_permissions(ban_members=True)
@@ -76,9 +82,8 @@ class Moderation(Cog):
             ) from e
         else:
             yield Embed(
-                    description=f"Sucesfully banned {user.name}", color=Color.green()
-                )
-            
+                description=f"Sucesfully banned {user.name}", color=Color.green()
+            )
 
     @squidcommand("unban")
     @has_guild_permissions(ban_members=True)
@@ -102,8 +107,6 @@ class Moderation(Cog):
             ) from e
         else:
             yield f"Sucesfully unbanned {user.name}"
-
-   
 
     @squidcommand("massban")
     @has_guild_permissions(ban_members=True)
@@ -151,5 +154,5 @@ class Moderation(Cog):
         yield None
 
 
-def setup(bot): 
+def setup(bot):
     return bot.add_cog(Moderation(bot))
