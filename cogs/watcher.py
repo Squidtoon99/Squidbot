@@ -12,24 +12,28 @@ __all__ = (
 
 class CustomEventHandler(FileSystemEventHandler):
     def on_modified(self, event):
-        print(f'event type: {event.event_type}  path : {event.src_path}')
+        print(f"event type: {event.event_type}  path : {event.src_path}")
+
     """
     The event handler for
     """
 
-    def __init__(self, bot,):
+    def __init__(
+        self,
+        bot,
+    ):
         self.bot = bot
         self.log = bot.log.getChild("FileReloader")
         self.set_loop = False
         self.modules = bot.extensions
 
     def dispatch(self, event):
-        
+
         if event.is_directory:
             return
         if not event.src_path.endswith(".py"):
             return
-        
+
         if not self.set_loop:
             set_event_loop(self.bot.loop)
             self.set_loop = True
@@ -65,6 +69,7 @@ class Watcher(Cog):
 
     def cog_unload(self):
         self.stop()
+
 
 def setup(bot):
     bot.add_cog(Watcher(bot))
