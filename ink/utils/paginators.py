@@ -188,18 +188,17 @@ class LinePaginator(Paginator):
                 "There's less than two pages, so we won't paginate - sending single page on its own"
             )
             return await ctx.send(embed=embed)
+        if footer_text:
+            embed.set_footer(
+                text=f"{footer_text} (Page {current_page + 1}/{len(paginator.pages)})"
+            )
         else:
-            if footer_text:
-                embed.set_footer(
-                    text=f"{footer_text} (Page {current_page + 1}/{len(paginator.pages)})"
-                )
-            else:
-                embed.set_footer(text=f"Page {current_page + 1}/{len(paginator.pages)}")
+            embed.set_footer(text=f"Page {current_page + 1}/{len(paginator.pages)}")
 
-            logging.debug(f"Setting embed footer to '{embed.footer.text}'")
+        logging.debug(f"Setting embed footer to '{embed.footer.text}'")
 
-            logging.debug("Sending first page to channel...")
-            message = await ctx.send(embed=embed)
+        logging.debug("Sending first page to channel...")
+        message = await ctx.send(embed=embed)
 
         logging.debug("Adding emoji reactions to message...")
 
