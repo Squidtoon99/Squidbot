@@ -38,7 +38,7 @@ class Moderation(Cog):
 
         try:
             await user.kick(reason=reason)
-        except discord.HTTPException as e:
+        except HTTPException as e:
             traceback.print_exc()
             raise CommandError(
                 f"Something went wrong while kicking {user.mention} check logs"
@@ -74,7 +74,7 @@ class Moderation(Cog):
 
         try:
             await user.ban(reason=reason)
-        except discord.HTTPException as e:
+        except HTTPException as e:
             traceback.print_exc()
             raise CommandError(
                 f"Something went wrong while banning {user.mention} check logs"
@@ -99,7 +99,7 @@ class Moderation(Cog):
         # check https://discordpy.readthedocs.io/en/latest/api.html#discord.Guild.unban
         try:
             await ctx.guild.unban(user, reason=reason)
-        except discord.HTTPException as e:
+        except HTTPException as e:
             traceback.print_exc()
             raise CommandError(
                 f"Something went wrong while unbanning {user.name} check logs"
