@@ -9,8 +9,7 @@ from discord.ext.commands import (
 from ink.utils.converters import TextMember
 from ink.core import squidcommand
 from ink.utils.paginators import LinePaginator
-from discord import Color, Embed, User
-
+from discord import Color, Embed, User, HTTPException
 # x
 class Moderation(Cog):
     def __init__(self, bot):
@@ -39,7 +38,7 @@ class Moderation(Cog):
 
         try:
             await user.kick(reason=reason)
-        except Exception as e:
+        except discord.HTTPException as e:
             traceback.print_exc()
             raise CommandError(
                 f"Something went wrong while kicking {user.mention} check logs"
@@ -75,7 +74,7 @@ class Moderation(Cog):
 
         try:
             await user.ban(reason=reason)
-        except Exception as e:
+        except discord.HTTPException as e:
             traceback.print_exc()
             raise CommandError(
                 f"Something went wrong while banning {user.mention} check logs"
@@ -100,7 +99,7 @@ class Moderation(Cog):
         # check https://discordpy.readthedocs.io/en/latest/api.html#discord.Guild.unban
         try:
             await ctx.guild.unban(user, reason=reason)
-        except Exception as e:
+        except discord.HTTPException as e:
             traceback.print_exc()
             raise CommandError(
                 f"Something went wrong while unbanning {user.name} check logs"
