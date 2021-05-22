@@ -1,7 +1,13 @@
 from discord import Member, Role, utils
-from discord.ext.commands import (BadArgument, CommandError, Converter,
-                                  MemberConverter, MemberNotFound,
-                                  RoleConverter, RoleNotFound)
+from discord.ext.commands import (
+    BadArgument,
+    CommandError,
+    Converter,
+    MemberConverter,
+    MemberNotFound,
+    RoleConverter,
+    RoleNotFound,
+)
 from fuzzywuzzy import process
 
 
