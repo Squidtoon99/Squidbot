@@ -1,0 +1,12 @@
+{
+  "extensions": [
+    "cogs.watcher",
+    "cogs.moderation",
+    "cogs.tests",
+    "cogs.poll",
+    "jishaku"
+  ],
+  "token": "",
+  "command_prefix": "s!",
+  "raise-extension-error": true
+}
