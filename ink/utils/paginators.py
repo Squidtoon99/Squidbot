@@ -2,6 +2,7 @@ from discord.ext.commands import *
 from typing import Iterable, Optional
 from discord import *
 import asyncio
+
 FIRST_EMOJI = "\u23EE"  # [:track_previous:]
 LEFT_EMOJI = "\u2B05"  # [:arrow_left:]
 RIGHT_EMOJI = "\u27A1"  # [:arrow_right:]
@@ -11,6 +12,7 @@ DELETE_EMOJI = "\u274c"  # [:x:]
 PAGINATION_EMOJI = [FIRST_EMOJI, LEFT_EMOJI, RIGHT_EMOJI, LAST_EMOJI, DELETE_EMOJI]
 
 # modifications for server knight
+
 
 class LinePaginator(Paginator):
     """
@@ -147,7 +149,7 @@ class LinePaginator(Paginator):
                         # Reaction is one of the pagination emotes
                         reaction_.emoji in PAGINATION_EMOJI,
                         # Reaction was not made by the Bot
-                        user_.bot != True,
+                        user_.bot is not True,
                         # There were no restrictions
                         no_restrictions,
                     )
