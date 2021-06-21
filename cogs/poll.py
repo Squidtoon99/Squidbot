@@ -32,11 +32,14 @@ class Polls(commands.Cog):
 
         await ctx.reply(
             embed=embed,
-            components=[[Button(style=ButtonStyle.green, label="👍", id='yes'), Button(style=ButtonStyle.red, label="👎", id='no')]]
+            components=[
+                [
+                    Button(style=ButtonStyle.green, label="👍", id="yes"),
+                    Button(style=ButtonStyle.red, label="👎", id="no"),
+                ]
+            ],
         )
-    
+
     @commands.Cog.listener()
     async def on_button_click(self, res):
         await res.respond(content="Poll Recieved", ephimeral=True)
-
-

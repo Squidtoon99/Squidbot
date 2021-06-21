@@ -70,4 +70,3 @@ class Watcher(Cog):
 
     def cog_unload(self):
         self.stop()
-
