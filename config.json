@@ -8,7 +8,6 @@
     "cogs.userphone",
     "jishaku"
   ],
-  "token": "NjY1MzgwMzUwMDQxNjUzMjQ4.XhkxvQ.ZHhkz4g57Y4PzS472sPGx2a8siI",
   "command_prefix": "s!",
   "color": "blurple",
   "redis-uri": "redis://localhost:6379",
