@@ -1,0 +1,25 @@
+version: "3"
+services:
+  app:
+    build: .
+    environment:
+      - RHOST=redis
+    networks:
+      - redis-net
+    depends_on:
+      - redis
+    restart: always
+  redis:
+    image: redis:4.0.5-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    hostname: redis
+    networks:
+      - redis-net
+    volumes:
+      - redis-data:/data
+    restart: always
+networks:
+  redis-net:
+
+volumes:
+  redis-data:

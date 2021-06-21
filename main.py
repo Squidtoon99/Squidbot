@@ -1,6 +1,7 @@
-import logging
-from ink.core import SquidBot
 import json
+import logging
+
+from ink.core import SquidBot
 
 with open("./config.json", "r") as fp:
     config = json.load(fp)

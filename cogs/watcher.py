@@ -71,6 +71,3 @@ class Watcher(Cog):
     def cog_unload(self):
         self.stop()
 
-
-def setup(bot):
-    bot.add_cog(Watcher(bot))

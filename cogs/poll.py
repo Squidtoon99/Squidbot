@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from discord_components import Button, ButtonStyle
 from ink.core import squidcommand
 
 
@@ -29,12 +30,13 @@ class Polls(commands.Cog):
             name=ctx.author.name, icon_url=ctx.author.avatar_url
         )
 
-        msg = await ctx.reply(
+        await ctx.reply(
             embed=embed,
+            components=[[Button(style=ButtonStyle.green, label="👍", id='yes'), Button(style=ButtonStyle.red, label="👎", id='no')]]
         )
-        await msg.add_reaction(self.yes)
-        await msg.add_reaction(self.no)
+    
+    @commands.Cog.listener()
+    async def on_button_click(self, res):
+        await res.respond(content="Poll Recieved", ephimeral=True)
 
 
-def setup(bot) -> None:
-    bot.add_cog(Polls(bot))

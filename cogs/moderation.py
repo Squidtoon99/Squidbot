@@ -1,13 +1,9 @@
 import traceback
 
 from discord import Color, Embed, HTTPException, User
-from discord.ext.commands import (
-    Cog,
-    CommandError,
-    Greedy,
-    bot_has_guild_permissions,
-    has_guild_permissions,
-)
+from discord.ext.commands import (Cog, CommandError, Greedy,
+                                  bot_has_guild_permissions,
+                                  has_guild_permissions)
 from ink.core import squidcommand
 from ink.utils.converters import TextMember
 from ink.utils.paginators import LinePaginator
@@ -47,9 +43,7 @@ class Moderation(Cog):
                 f"Something went wrong while kicking {user.mention} check logs"
             ) from e
         else:
-            yield Embed(
-                description=f"Successfully kicked {user.name}", color=Color.green()
-            )
+            yield f"Successfully kicked {user.name}"
 
     @squidcommand("ban")
     @has_guild_permissions(ban_members=True)
@@ -83,9 +77,8 @@ class Moderation(Cog):
                 f"Something went wrong while banning {user.mention} check logs"
             ) from e
         else:
-            yield Embed(
-                description=f"Sucesfully banned {user.name}", color=Color.green()
-            )
+            yield f"Sucesfully banned {user.name}"
+            
 
     @squidcommand("unban")
     @has_guild_permissions(ban_members=True)
@@ -154,7 +147,3 @@ class Moderation(Cog):
             self.bot,
         )
         yield None
-
-
-def setup(bot):
-    return bot.add_cog(Moderation(bot))

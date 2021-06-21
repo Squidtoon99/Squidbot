@@ -1,18 +1,24 @@
 import asyncio
+import importlib
 import inspect
 import io
 import logging
+import sys
 import traceback
 import types
-
+import aioredis
 import discord
 from discord.ext import commands
 from discord.ext.commands import errors
+from discord.ext.commands.bot import _is_submodule
+from discord_components import DiscordComponents
 from jishaku.functools import AsyncSender
 from jishaku.paginators import PaginatorInterface, WrappedPaginator
 from jishaku.repl import AsyncCodeExecutor, all_inspections
 from jishaku.repl.scope import Scope
+import locale
 
+locale.setlocale(locale.LC_ALL,'en_US.UTF-8')
 __all__ = ("SquidBot",)
 
 
@@ -24,7 +30,10 @@ class SquidBot(commands.AutoShardedBot):
 
         # config
         self.log = logging.getLogger(type(self).__name__)
+        self.color = getattr(discord.Color, self.config.get('color','blurple'), discord.Color.blurple)()
 
+        # databases 
+        self.redis = None
         # scope for jsk
         self.scope = Scope()
 
@@ -37,11 +46,119 @@ class SquidBot(commands.AutoShardedBot):
                 traceback.print_exc()
                 if config.get("raise-extension-error", False):
                     raise
+            else:
+                self.log.info(f"Loaded {ext}")
 
         self.run(config["token"], reconnect=True)
 
+    async def create(self):
+        self.redis = await aioredis.create_redis(
+            self.config['redis-uri'],
+            encoding='utf8'
+        )
+        await self.redis.ping()
+
+    def load_extension(self, name, *, package=None):
+        name = self._resolve_name(name, package)
+        if name in self._BotBase__extensions:
+            raise errors.ExtensionAlreadyLoaded(name)
+
+        spec = importlib.util.find_spec(name)
+        if spec is None:
+            raise errors.ExtensionNotFound(name)
+
+        self._load_from_module_spec(spec, name)
+
+    def unload_extension(self, name, *, package=None):
+        name = self._resolve_name(name, package)
+        lib = self._BotBase__extensions.get(name)
+        if lib is None:
+            raise errors.ExtensionNotLoaded(name)
+
+        self._remove_module_references(lib.__name__)
+        self._call_module_finalizers(lib, name)
+
+    def reload_extension(self, name, *, package=None):
+        name = self._resolve_name(name, package)
+        lib = self._BotBase__extensions.get(name)
+        if lib is None:
+            raise errors.ExtensionNotLoaded(name)
+
+        # get the previous module states from sys modules
+        modules = {
+            name: module
+            for name, module in sys.modules.items()
+            if _is_submodule(lib.__name__, name)
+        }
+
+        try:
+            # Unload and then load the module...
+            self._remove_module_references(lib.__name__)
+            self._call_module_finalizers(lib, name)
+            self.load_extension(name)
+        except Exception:
+            # if the load failed, the remnants should have been
+            # cleaned from the load_extension function call
+            # so let's load it from our old compiled library.
+            setup = getattr(lib, "setup", None)
+            if setup:
+                setup(self)
+            else:
+                
+                for obj_name in dir(lib):
+                    if obj_name.startswith('_') or obj_name in ["Cog", "CogMeta"]:
+                        continue 
+                    obj = getattr(lib, obj_name)
+                    if isinstance(obj, commands.CogMeta):
+                        self.add_cog(obj(self))
+                    
+            self._BotBase__extensions[name] = lib
+
+            # revert sys.modules back to normal and raise back to caller
+            sys.modules.update(modules)
+            raise
+
+    def _load_from_module_spec(self, spec, key):
+        # precondition: key not in self.__extensions
+        lib = importlib.util.module_from_spec(spec)
+        sys.modules[key] = lib
+        try:
+            spec.loader.exec_module(lib)
+        except Exception as e:
+            del sys.modules[key]
+            raise errors.ExtensionFailed(key, e) from e
+
+        setup = getattr(lib, "setup", None)
+            
+        try:
+            if setup:
+                setup(self)
+            else:
+                c = True
+                for obj_name in dir(lib):
+                    if obj_name.startswith('_') or obj_name in ["Cog", "CogMeta"]:
+                        continue
+                    obj = getattr(lib, obj_name)
+                    if isinstance(obj, commands.CogMeta):
+                        self.add_cog(obj(self))
+                        c = False
+                else:
+                    if c:
+                        raise errors.NoEntryPointError(key)
+        except Exception as e:
+            del sys.modules[key]
+            self._remove_module_references(lib.__name__)
+            self._call_module_finalizers(lib, key)
+            raise errors.ExtensionFailed(key, e) from e
+        else:
+            self._BotBase__extensions[key] = lib
+
+
+
     async def on_ready(self) -> None:
-        print(
+        await self.create()
+        DiscordComponents(self)
+        self.log.info(
             "Connected!\n"
             + "\n".join(
                 [
@@ -86,7 +203,7 @@ class SquidBot(commands.AutoShardedBot):
         await self.process_output(ctx, coro)
 
     async def on_command_error(self, ctx, error):
-        await ctx.reply(f"{type(error).__name__}: {error}")
+        await ctx.reply(embed=discord.Embed(color=discord.Color.red(), description=f"{type(error).__name__}: {error}"))
         raise error
 
     async def process_output(self, ctx: commands.Context, coro):
@@ -115,14 +232,34 @@ class SquidBot(commands.AutoShardedBot):
                     # repr all non-strings
                     result = repr(result)
 
-                if len(result) <= 2000:
+                if len(result) <= 1950:
                     if result.strip() == "":
                         result = "\u200b"
+                    kwargs = {}
+                    perms = ctx.channel.permissions_for(ctx.me)
+                    if not perms.send_messages:
+                        if perms.add_reactions:
+                            try:
+                                await ctx.message.add_reaction('‼️')
+                            except:
+                                pass
+                        dest = ctx.author.send 
+                        kwargs['content'] = "I cannot send messages in that channel!\n"
+                        kwargs['embed'] = discord.Embed(
+                                description=result.replace(self.http.token, "[token omitted]")
+                            , color=self.color)
+                    else:
+                        dest = ctx.reply
+
+                        if not perms.embed_links:
+                            kwargs['content'] = result 
+                        else:
+                            kwargs['embed'] = discord.Embed(
+                                description=result.replace(self.http.token, "[token omitted]")
+                            , color=self.color)
 
                     send(
-                        await ctx.reply(
-                            result.replace(self.http.token, "[token omitted]")
-                        )
+                        await dest(**kwargs)
                     )
 
                 elif len(result) < 50_000:  # File "full content" preview limit
