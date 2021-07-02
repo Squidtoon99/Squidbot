@@ -5,6 +5,7 @@ from typing import Iterable, Optional
 from discord import Embed, Member, Reaction, User
 from discord.ext.commands import CommandError, Context, Paginator
 
+__all__ = ("LinePaginator",)
 FIRST_EMOJI = "\u23EE"  # [:track_previous:]
 LEFT_EMOJI = "\u2B05"  # [:arrow_left:]
 RIGHT_EMOJI = "\u27A1"  # [:arrow_right:]
