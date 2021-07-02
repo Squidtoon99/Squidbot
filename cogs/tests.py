@@ -16,6 +16,8 @@ class Tests(commands.Cog):
             yield i
 
     @squidcommand()
-    @commands.has_permissions(administrator=True, manage_guild=True, view_channel=True, manage_messages=True) 
+    @commands.has_permissions(
+        administrator=True, manage_guild=True, view_channel=True, manage_messages=True
+    )
     async def testperm(self, ctx):
         yield str("You do have admin perms")

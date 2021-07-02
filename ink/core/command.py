@@ -39,47 +39,49 @@ def hooked_wrapped_callback(command, ctx, coro):
 
 class SquidCommand(Command):
     def __init__(self, func, **kwargs):
-        self.name = name = kwargs.get('name') or func.__name__
+        self.name = name = kwargs.get("name") or func.__name__
         if not isinstance(name, str):
-            raise TypeError('Name of a command must be a string.')
+            raise TypeError("Name of a command must be a string.")
 
         self.callback = func
-        self.enabled = kwargs.get('enabled', True)
+        self.enabled = kwargs.get("enabled", True)
 
-        help_doc = kwargs.get('help')
+        help_doc = kwargs.get("help")
         if help_doc is not None:
             help_doc = inspect.cleandoc(help_doc)
         else:
             help_doc = inspect.getdoc(func)
             if isinstance(help_doc, bytes):
-                help_doc = help_doc.decode('utf-8')
+                help_doc = help_doc.decode("utf-8")
 
         self.help = help_doc
 
-        self.brief = kwargs.get('brief')
-        self.usage = kwargs.get('usage')
-        self.rest_is_raw = kwargs.get('rest_is_raw', False)
-        self.aliases = kwargs.get('aliases', [])
-        self.extras = kwargs.get('extras', {})
+        self.brief = kwargs.get("brief")
+        self.usage = kwargs.get("usage")
+        self.rest_is_raw = kwargs.get("rest_is_raw", False)
+        self.aliases = kwargs.get("aliases", [])
+        self.extras = kwargs.get("extras", {})
 
         if not isinstance(self.aliases, (list, tuple)):
-            raise TypeError("Aliases of a command must be a list or a tuple of strings.")
+            raise TypeError(
+                "Aliases of a command must be a list or a tuple of strings."
+            )
 
-        self.description = inspect.cleandoc(kwargs.get('description', ''))
-        self.hidden = kwargs.get('hidden', False)
+        self.description = inspect.cleandoc(kwargs.get("description", ""))
+        self.hidden = kwargs.get("hidden", False)
 
         try:
             checks = func.__commands_checks__
             checks.reverse()
         except AttributeError:
-            checks = kwargs.get('checks', [])
+            checks = kwargs.get("checks", [])
         finally:
             self.checks = checks
 
         try:
             cooldown = func.__commands_cooldown__
         except AttributeError:
-            cooldown = kwargs.get('cooldown')
+            cooldown = kwargs.get("cooldown")
         finally:
             if cooldown is None:
                 self._buckets = CooldownMapping(cooldown, BucketType.default)
@@ -89,17 +91,17 @@ class SquidCommand(Command):
         try:
             max_concurrency = func.__commands_max_concurrency__
         except AttributeError:
-            max_concurrency = kwargs.get('max_concurrency')
+            max_concurrency = kwargs.get("max_concurrency")
         finally:
             self._max_concurrency = max_concurrency
 
-        self.require_var_positional = kwargs.get('require_var_positional', False)
-        self.ignore_extra = kwargs.get('ignore_extra', True)
-        self.cooldown_after_parsing = kwargs.get('cooldown_after_parsing', False)
+        self.require_var_positional = kwargs.get("require_var_positional", False)
+        self.ignore_extra = kwargs.get("ignore_extra", True)
+        self.cooldown_after_parsing = kwargs.get("cooldown_after_parsing", False)
         self.cog = None
 
         # bandaid for the fact that sometimes parent can be the bot instance
-        parent = kwargs.get('parent')
+        parent = kwargs.get("parent")
         self.parent = parent if isinstance(parent, _BaseCommand) else None
 
         try:

@@ -10,7 +10,12 @@ from discord.ext.commands import (
 )
 from fuzzywuzzy import process
 
-__all__ = ("TextMember", "TextRole", )
+__all__ = (
+    "TextMember",
+    "TextRole",
+)
+
+
 class TextMember(
     Converter
 ):  # so users don't have to type entire names / ping for members
