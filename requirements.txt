@@ -4,7 +4,7 @@ async-timeout
 attrs
 braceexpand
 chardet
-discord.py
+git+https://github.com/Rapptz/discord.py
 fuzzywuzzy
 humanize
 idna
