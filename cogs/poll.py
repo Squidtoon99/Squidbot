@@ -27,7 +27,7 @@ class Polls(commands.Cog):
 
         # description is a required field
         embed = discord.Embed(description=question).set_author(
-            name=ctx.author.name, icon_url=ctx.author.avatar_url
+            name=ctx.author.name, icon_url=ctx.author.avatar.url
         )
 
         await ctx.reply(
