@@ -8,9 +8,14 @@ class Tests(commands.Cog):
 
     @squidcommand()
     async def testmax(self, ctx):
-        return "this is more than 2k characters\n" * 100
+        return "this is more than 2k characters\n" * 500
 
     @squidcommand()
     async def testgen(self, ctx):
         for i in range(5):
             yield i
+
+    @squidcommand()
+    @commands.has_permissions(administrator=True, manage_guild=True, view_channel=True, manage_messages=True) 
+    async def testperm(self, ctx):
+        yield str("You do have admin perms")
