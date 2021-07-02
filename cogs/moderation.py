@@ -25,7 +25,7 @@ class Moderation(Cog):
         author_pos = ctx.author.top_role.position
         bot_pos = ctx.me.top_role.position
         # this checks if the user we are about to kick is lower than the person kicking
-        if user_pos >= author_pos:
+        if user_pos >= author_pos and (ctx.author.id != ctx.guild.owner_id):
             raise CommandError(
                 f"{user.mention} has a role equal or higher than you. You cannot kick them"
             )
@@ -59,7 +59,7 @@ class Moderation(Cog):
         author_pos = ctx.author.top_role.position
         bot_pos = ctx.me.top_role.position
         # this checks if the user we are about to ban is lower than the person kicking
-        if user_pos >= author_pos:
+        if user_pos >= author_pos and (ctx.author.id != ctx.guild.owner_id):
             raise CommandError(
                 f"{user.mention} has a role equal or higher than you. You cannot ban them"
             )
@@ -120,7 +120,7 @@ class Moderation(Cog):
             author_pos = ctx.author.top_role.position
             bot_pos = ctx.me.top_role.position
             # this checks if the user we are about to ban is lower than the person kicking
-            if user_pos >= author_pos:
+            if user_pos >= author_pos and (ctx.author.id != ctx.guild.owner_id):
                 errors.append(
                     f"{user.mention} has a role equal or higher than you. You cannot ban them"
                 )
