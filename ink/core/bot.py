@@ -202,10 +202,6 @@ class SquidBot(commands.AutoShardedBot):
 
         await self.process_output(ctx, coro)
 
-    async def on_command_error(self, ctx, error):
-        await ctx.reply(embed=discord.Embed(color=discord.Color.red(), description=f"{type(error).__name__}: {error}"))
-        raise error
-
     async def process_output(self, ctx: commands.Context, coro):
 
         cmd = "async for _yield in coro:\n yield _yield"
@@ -232,7 +228,7 @@ class SquidBot(commands.AutoShardedBot):
                     # repr all non-strings
                     result = repr(result)
 
-                if len(result) <= 1950:
+                if len(result) <= 4050:
                     if result.strip() == "":
                         result = "\u200b"
                     kwargs = {}
