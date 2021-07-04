@@ -3,15 +3,17 @@ import traceback
 from discord import Color, Embed, HTTPException, User, PermissionOverwrite
 from ink.core import squidcommand
 from ink.utils import TextMember, LinePaginator, Embed, ErrorEmbed
-from discord.ext import commands 
- 
+from discord.ext import commands
+
 
 class Ticketing(commands.Cog):
     def __init__(self, bot):
-        self.bot = bot 
-    
+        self.bot = bot
+
     async def _get_overwrites(self, ctx, roles):
-        overwrites = {await ctx.guild.default_role(): PermissionOverwrite(read_messages=False)}
+        overwrites = {
+            await ctx.guild.default_role(): PermissionOverwrite(read_messages=False)
+        }
 
         for role in roles:
             role = await ctx.guild.get_role(role)
@@ -49,8 +51,12 @@ class Ticketing(commands.Cog):
             return
 
         overwrites = await self._get_overwrites(ctx, data[3])
-        category = await ctx.guild.create_category(name="ModMail", overwrites=overwrites)
-        logging_channel = await ctx.guild.create_text_channel(name="modmail-log", category=category)
+        category = await ctx.guild.create_category(
+            name="ModMail", overwrites=overwrites
+        )
+        logging_channel = await ctx.guild.create_text_channel(
+            name="modmail-log", category=category
+        )
 
         async with self.bot.pool.acquire() as conn:
             await conn.execute(
@@ -70,6 +76,7 @@ class Ticketing(commands.Cog):
                 f"`{ctx.prefix}help`.",
             )
         )
+
 
 def setup(bot):
     bot.add_cog(Ticketing(bot))

@@ -6,7 +6,7 @@ class Tests(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @squidcommand() 
+    @squidcommand()
     async def testmessage(self, ctx):
         yield "This is a message!"
 
@@ -20,6 +20,8 @@ class Tests(commands.Cog):
             yield i
 
     @squidcommand()
-    @commands.has_permissions(administrator=False, manage_guild=False, view_channel=True, manage_messages=True) 
+    @commands.has_permissions(
+        administrator=False, manage_guild=False, view_channel=True, manage_messages=True
+    )
     async def testperm(self, ctx):
         yield str("You do have admin perms")

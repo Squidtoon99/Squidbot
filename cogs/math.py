@@ -6,8 +6,18 @@ import traceback
 from discord import Color, Embed
 from discord.ext.commands import Cog
 from ink.core import squidcommand
-from pyparsing import (CaselessLiteral, Forward, Group, Literal, Optional,
-                       Word, ZeroOrMore, alphas, nums, oneOf)
+from pyparsing import (
+    CaselessLiteral,
+    Forward,
+    Group,
+    Literal,
+    Optional,
+    Word,
+    ZeroOrMore,
+    alphas,
+    nums,
+    oneOf,
+)
 
 locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
 
@@ -160,7 +170,7 @@ class MathSolving(Cog):
         self.bot = bot
         self.parser = NumericStringParser()
 
-    @squidcommand("math", usage = "<equation>\n1+1\n10 * (20 - 4) / 3")
+    @squidcommand("math", usage="<equation>\n1+1\n10 * (20 - 4) / 3")
     async def math(self, ctx, *, equation):
         """
         Solve a math equation
