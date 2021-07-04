@@ -17,7 +17,7 @@ from jishaku.repl import AsyncCodeExecutor, all_inspections
 from jishaku.repl.scope import Scope
 import locale
 
-locale.setlocale(locale.LC_ALL,'en_US.UTF-8')
+locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
 __all__ = ("SquidBot",)
 
 
@@ -29,10 +29,12 @@ class SquidBot(commands.AutoShardedBot):
 
         # config
         self.log = logging.getLogger(type(self).__name__)
-        self.color = getattr(discord.Color, self.config.get('color','blurple'), discord.Color.blurple)()
-        self.mention_author = self.config.get('mention-author', False)
+        self.color = getattr(
+            discord.Color, self.config.get("color", "blurple"), discord.Color.blurple
+        )()
+        self.mention_author = self.config.get("mention-author", False)
 
-        # databases 
+        # databases
         self.redis = None
         # scope for jsk
         self.scope = Scope()
@@ -53,8 +55,7 @@ class SquidBot(commands.AutoShardedBot):
 
     async def create(self):
         self.redis = await aioredis.create_redis(
-            self.config['redis-uri'],
-            encoding='utf8'
+            self.config["redis-uri"], encoding="utf8"
         )
         await self.redis.ping()
 
@@ -104,14 +105,14 @@ class SquidBot(commands.AutoShardedBot):
             if setup:
                 setup(self)
             else:
-                
+
                 for obj_name in dir(lib):
-                    if obj_name.startswith('_') or obj_name in ["Cog", "CogMeta"]:
-                        continue 
+                    if obj_name.startswith("_") or obj_name in ["Cog", "CogMeta"]:
+                        continue
                     obj = getattr(lib, obj_name)
                     if isinstance(obj, commands.CogMeta):
                         self.add_cog(obj(self))
-                    
+
             self._BotBase__extensions[name] = lib
 
             # revert sys.modules back to normal and raise back to caller
@@ -129,20 +130,20 @@ class SquidBot(commands.AutoShardedBot):
             raise errors.ExtensionFailed(key, e) from e
 
         setup = getattr(lib, "setup", None)
-            
+
         try:
             if setup:
                 setup(self)
             else:
                 c = True
                 for obj_name in dir(lib):
-                    if obj_name.startswith('_') or obj_name in ["Cog", "CogMeta"]:
+                    if obj_name.startswith("_") or obj_name in ["Cog", "CogMeta"]:
                         continue
                     obj = getattr(lib, obj_name)
                     if isinstance(obj, commands.CogMeta):
                         self.add_cog(obj(self))
                         c = False
-                
+
                 if c:
                     raise errors.NoEntryPointError(key)
         except Exception as e:
@@ -152,8 +153,6 @@ class SquidBot(commands.AutoShardedBot):
             raise errors.ExtensionFailed(key, e) from e
         else:
             self._BotBase__extensions[key] = lib
-
-
 
     async def on_ready(self) -> None:
         await self.create()
@@ -185,14 +184,18 @@ class SquidBot(commands.AutoShardedBot):
                     raise errors.CheckFailure("The global check once functions failed.")
             except errors.CommandError as exc:
                 if "ErrorHandler" in self.cogs.keys():
-                    async for _yield in self.cogs['ErrorHandler'].on_command_error(ctx, exc):
+                    async for _yield in self.cogs["ErrorHandler"].on_command_error(
+                        ctx, exc
+                    ):
                         yield _yield
                 else:
                     self.dispatch("command_error", ctx, exc)
         elif ctx.invoked_with:
             exc = errors.CommandNotFound(f'Command "{ctx.invoked_with}" is not found')
             if "ErrorHandler" in self.cogs.keys():
-                async for _yield in self.cogs['ErrorHandler'].on_command_error(ctx, exc):
+                async for _yield in self.cogs["ErrorHandler"].on_command_error(
+                    ctx, exc
+                ):
                     yield _yield
             else:
                 self.dispatch("command_error", ctx, exc)
@@ -226,7 +229,10 @@ class SquidBot(commands.AutoShardedBot):
 
             if isinstance(result, discord.File):
                 send(await ctx.reply(file=result, mention_author=self.mention_author))
-            elif isinstance(result, discord.Embed) and ctx.channel.permissions_for(ctx.me).embed_links:
+            elif (
+                isinstance(result, discord.Embed)
+                and ctx.channel.permissions_for(ctx.me).embed_links
+            ):
                 send(await ctx.reply(embed=result, mention_author=self.mention_author))
             elif isinstance(result, PaginatorInterface):
                 send(await result.send_to(ctx))
@@ -234,7 +240,7 @@ class SquidBot(commands.AutoShardedBot):
                 o_embed = None
                 if isinstance(result, discord.Embed):
                     o_embed = result
-                    result = result.description 
+                    result = result.description
                 if not isinstance(result, str):
                     # repr all non-strings
                     result = repr(result)
@@ -247,27 +253,31 @@ class SquidBot(commands.AutoShardedBot):
                     if not perms.send_messages:
                         if perms.add_reactions:
                             try:
-                                await ctx.message.add_reaction('‼️')
+                                await ctx.message.add_reaction("‼️")
                             except:
                                 pass
-                        dest = ctx.author.send 
-                        kwargs['content'] = "I cannot send messages in that channel!\n"
-                        kwargs['embed'] = o_embed or discord.Embed(
-                                description=result.replace(self.http.token, "[token omitted]")
-                            , color=self.color)
+                        dest = ctx.author.send
+                        kwargs["content"] = "I cannot send messages in that channel!\n"
+                        kwargs["embed"] = o_embed or discord.Embed(
+                            description=result.replace(
+                                self.http.token, "[token omitted]"
+                            ),
+                            color=self.color,
+                        )
                     else:
                         dest = ctx.reply
 
                         if not perms.embed_links:
-                            kwargs['content'] = result 
+                            kwargs["content"] = result
                         else:
-                            kwargs['embed'] = discord.Embed(
-                                description=result.replace(self.http.token, "[token omitted]")
-                            , color=self.color)
+                            kwargs["embed"] = discord.Embed(
+                                description=result.replace(
+                                    self.http.token, "[token omitted]"
+                                ),
+                                color=self.color,
+                            )
 
-                    send(
-                        await dest(**kwargs)
-                    )
+                    send(await dest(**kwargs))
 
                 elif len(result) < 50_000:  # File "full content" preview limit
                     # Discord's desktop and web client now supports an interactive file content
