@@ -52,4 +52,4 @@ class UserPhone(Cog):
         
         if message.channel.id in self.channels:
             print("publishing")
-            await self.bot.redis.publish(f'userphone', json.dumps(Embed(description=message.content[:200]).set_author(name=message.author.nick, icon_url=message.author.avatar_url).to_dict()))
+            await self.bot.redis.publish('userphone', json.dumps(Embed(description=message.content[:200]).set_author(name=message.author.nick, icon_url=message.author.avatar_url).to_dict()))
