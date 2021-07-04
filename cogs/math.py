@@ -103,7 +103,7 @@ class NumericStringParser(object):
             "!": math.factorial,
             "factorial": math.factorial,
             "abs": abs,
-            "trunc": lambda a: int(a),
+            "trunc": int,
             "round": round,
             "sgn": lambda a: abs(a) > epsilon and ((a > 0) - (a < 0)) or 0,
             "log": lambda a: math.log(a, 10),
@@ -145,8 +145,7 @@ class NumericStringParser(object):
             return self.fn[op](self.evaluateStack(s))
         if str(op).isalpha():
             return 0
-        else:
-            return self.parse_num(op)
+        return self.parse_num(op)
 
     def eval(self, num_string, parseAll=True):
         self.exprStack = []
