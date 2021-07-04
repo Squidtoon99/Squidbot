@@ -142,9 +142,9 @@ class SquidBot(commands.AutoShardedBot):
                     if isinstance(obj, commands.CogMeta):
                         self.add_cog(obj(self))
                         c = False
-                else:
-                    if c:
-                        raise errors.NoEntryPointError(key)
+                
+                if c:
+                    raise errors.NoEntryPointError(key)
         except Exception as e:
             del sys.modules[key]
             self._remove_module_references(lib.__name__)
