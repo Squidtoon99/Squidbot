@@ -59,7 +59,7 @@ class ErrorHandler(commands.Cog):
                     *_, last_frame = traceback.walk_tb(e.__traceback__) # Iterate through the generator and get the last element
                     frame = last_frame[0] # get the first element to get the trace
                     permissions = frame.f_locals.get('perms') # Output: {'administrator': True, 'manage_messages': True}
-                    if permissions and all([perm in permissions for perm in error.missing_permissions]):
+                    if permissions and all(perm in permissions for perm in error.missing_permissions):
                         break
 
             yield ErrorEmbed(
@@ -80,7 +80,7 @@ class ErrorHandler(commands.Cog):
                     *_, last_frame = traceback.walk_tb(e.__traceback__) # Iterate through the generator and get the last element
                     frame = last_frame[0] # get the first element to get the trace
                     permissions = frame.f_locals.get('perms') # Output: {'administrator': True, 'manage_messages': True}
-                    if permissions and all([perm in permissions for perm in error.missing_permissions]):
+                    if permissions and all(perm in permissions for perm in error.missing_permissions):
                         break
             yield ErrorEmbed(
                     "Squid Missing Permissions",
