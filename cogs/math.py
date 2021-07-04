@@ -137,13 +137,13 @@ class NumericStringParser(object):
             op2 = self.evaluateStack(s)
             op1 = self.evaluateStack(s)
             return self.opn[op](op1, op2)
-        elif op == "PI":
+        if op == "PI":
             return math.pi  # 3.1415926535
-        elif op == "E":
+        if op == "E":
             return math.e  # 2.718281828
-        elif op in self.fn:
+        if op in self.fn:
             return self.fn[op](self.evaluateStack(s))
-        elif str(op).isalpha():
+        if str(op).isalpha():
             return 0
         else:
             return self.parse_num(op)
