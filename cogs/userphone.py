@@ -16,10 +16,10 @@ class UserPhone(Cog):
         if not self.reciever:
             self.reciever = Receiver(loop=self.bot.loop)
 
-    async def user_leave(self, user : Member):
+    async def user_leave(self, _ : Member):
         return 
 
-    async def user_join(self, user : Member):
+    async def user_join(self, _ : Member):
         return 
 
     @squidcommand("phone")

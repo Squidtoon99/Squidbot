@@ -160,7 +160,7 @@ class MathSolving(Cog):
         self.parser = NumericStringParser()
 
     @squidcommand("math", usage = "<equation>\n1+1\n10 * (20 - 4) / 3")
-    async def math(self, ctx, *, equation):
+    async def math(self, _, *, equation):
         """
         Solve a math equation
         """
