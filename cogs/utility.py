@@ -6,9 +6,9 @@ class Utility(commands.Cog):
         self.bot = bot 
     
     @squidcommand() 
-    async def source(self, ctx):
+    async def source(self, _):
         yield "https://github.com/Squidtoon99/SquidBot"
     
     @squidcommand() 
-    async def ping(self, ctx):
+    async def ping(self, _):
         yield "Bot Latency: `{:,}` ms".format(int(self.bot.latency*1000))
