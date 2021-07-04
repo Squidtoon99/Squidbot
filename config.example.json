@@ -8,5 +8,7 @@
   ],
   "token": "",
   "command_prefix": "s!",
-  "raise-extension-error": true
+  "raise-extension-error": true,
+  "case_insensitive":true,
+  "mention-author":false
 }

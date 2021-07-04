@@ -11,7 +11,6 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import errors
 from discord.ext.commands.bot import _is_submodule
-from discord_components import DiscordComponents
 from jishaku.functools import AsyncSender
 from jishaku.paginators import PaginatorInterface, WrappedPaginator
 from jishaku.repl import AsyncCodeExecutor, all_inspections
@@ -31,6 +30,7 @@ class SquidBot(commands.AutoShardedBot):
         # config
         self.log = logging.getLogger(type(self).__name__)
         self.color = getattr(discord.Color, self.config.get('color','blurple'), discord.Color.blurple)()
+        self.mention_author = self.config.get('mention-author', False)
 
         # databases 
         self.redis = None
@@ -157,7 +157,6 @@ class SquidBot(commands.AutoShardedBot):
 
     async def on_ready(self) -> None:
         await self.create()
-        DiscordComponents(self)
         self.log.info(
             "Connected!\n"
             + "\n".join(
@@ -185,10 +184,18 @@ class SquidBot(commands.AutoShardedBot):
                 else:
                     raise errors.CheckFailure("The global check once functions failed.")
             except errors.CommandError as exc:
-                await ctx.command.dispatch_error(ctx, exc)
+                if "ErrorHandler" in self.cogs.keys():
+                    async for _yield in self.cogs['ErrorHandler'].on_command_error(ctx, exc):
+                        yield _yield
+                else:
+                    self.dispatch("command_error", ctx, exc)
         elif ctx.invoked_with:
             exc = errors.CommandNotFound(f'Command "{ctx.invoked_with}" is not found')
-            self.dispatch("command_error", ctx, exc)
+            if "ErrorHandler" in self.cogs.keys():
+                async for _yield in self.cogs['ErrorHandler'].on_command_error(ctx, exc):
+                    yield _yield
+            else:
+                self.dispatch("command_error", ctx, exc)
         yield None
         # else:
         # await super(self, commands.AutoShardedBot).invoke(ctx)
@@ -218,12 +225,16 @@ class SquidBot(commands.AutoShardedBot):
             self.last_result = result
 
             if isinstance(result, discord.File):
-                send(await ctx.reply(file=result))
-            elif isinstance(result, discord.Embed):
-                send(await ctx.reply(embed=result))
+                send(await ctx.reply(file=result, mention_author=self.mention_author))
+            elif isinstance(result, discord.Embed) and ctx.channel.permissions_for(ctx.me).embed_links:
+                send(await ctx.reply(embed=result, mention_author=self.mention_author))
             elif isinstance(result, PaginatorInterface):
                 send(await result.send_to(ctx))
             else:
+                o_embed = None
+                if isinstance(result, discord.Embed):
+                    o_embed = result
+                    result = result.description 
                 if not isinstance(result, str):
                     # repr all non-strings
                     result = repr(result)
@@ -231,7 +242,7 @@ class SquidBot(commands.AutoShardedBot):
                 if len(result) <= 4050:
                     if result.strip() == "":
                         result = "\u200b"
-                    kwargs = {}
+                    kwargs = dict(mention_author=self.mention_author)
                     perms = ctx.channel.permissions_for(ctx.me)
                     if not perms.send_messages:
                         if perms.add_reactions:
@@ -241,7 +252,7 @@ class SquidBot(commands.AutoShardedBot):
                                 pass
                         dest = ctx.author.send 
                         kwargs['content'] = "I cannot send messages in that channel!\n"
-                        kwargs['embed'] = discord.Embed(
+                        kwargs['embed'] = o_embed or discord.Embed(
                                 description=result.replace(self.http.token, "[token omitted]")
                             , color=self.color)
                     else:

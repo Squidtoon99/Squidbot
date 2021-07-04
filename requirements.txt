@@ -1,10 +1,12 @@
 aiohttp
+aioredis
 astunparse
 async-timeout
 attrs
 braceexpand
 chardet
 git+https://github.com/Rapptz/discord.py
+discord-components
 fuzzywuzzy
 humanize
 idna

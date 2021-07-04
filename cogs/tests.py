@@ -6,6 +6,10 @@ class Tests(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    @squidcommand() 
+    async def testmessage(self, ctx):
+        yield "This is a message!"
+
     @squidcommand()
     async def testmax(self, ctx):
         return "this is more than 2k characters\n" * 500
@@ -16,6 +20,6 @@ class Tests(commands.Cog):
             yield i
 
     @squidcommand()
-    @commands.has_permissions(administrator=True, manage_guild=True, view_channel=True, manage_messages=True) 
+    @commands.has_permissions(administrator=False, manage_guild=False, view_channel=True, manage_messages=True) 
     async def testperm(self, ctx):
         yield str("You do have admin perms")

@@ -13,44 +13,43 @@ def perm_format(perm):
 class ErrorHandler(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        bot.on_command_error = self.error_handler
+        self.on_command_error = self.error_handler
 
     async def error_handler(self, ctx, error, bypass=False):
-        if (
-            hasattr(ctx.command, "on_error")
-            or (ctx.command and hasattr(ctx.cog, f"_{ctx.command.cog_name}__error"))
-            and not bypass
-        ):
-            return
         n = '\n'
-        if isinstance(error, commands.CommandNotFound):
-            return
+        if hasattr(ctx.command, "on_error") and not bypass:
+            async for _yield in ctx.command.on_error(ctx, error):
+                yield _yield 
+            return 
+        elif hasattr(ctx.cog, "on_error"):
+            async for _yield in ctx.cog.on_error(ctx, error) and not bypass:
+                yield _yield
+        
+        elif isinstance(error, commands.CommandNotFound):
+            yield None # nothing here handlers will ignore
         elif isinstance(error, commands.NoPrivateMessage):
-            await ctx.send(embed=
-                ErrorEmbed("No DM Command", "This command cannot be used in direct message.")
-            )
+            yield ErrorEmbed("No DM Command", "This command cannot be used in direct message.")
+            
         elif isinstance(error, commands.PrivateMessageOnly):
-            await ctx.send(embed=
-                ErrorEmbed(
+            yield ErrorEmbed(
                     "DM Only Command",
                     "This command can only be used in direct message.",
                 )
-            )
+            
         elif isinstance(error, commands.MissingRequiredArgument) or isinstance(
             error, commands.BadArgument
         ):
             embed = ErrorEmbed(
                 "Incorrect Arguments",
                 "Check the arguments you provided for the command"
-                f"`{ctx.prefix}support` if you don't know what went wrong.",
+                #f"`{ctx.prefix}support` if you don't know what went wrong.",
             )
-            usage = "\n".join([ctx.prefix + x.strip() for x in ctx.command.usage.split("\n")])
+            usage = "\n".join([ctx.prefix + ctx.command.qualified_name + " " + x.strip() for x in ctx.command.usage.split("\n")]) if ctx.command.usage else f"{ctx.prefix}{ctx.command.qualified_name} {ctx.command.signature}"
             embed.add_field("Usage", f"```{usage}```")
-            await ctx.send(embed=embed)
+            yield embed
         elif isinstance(error, commands.NotOwner):
-            await ctx.send(embed=
-                ErrorEmbed("Permission Denied", "You do not have permission to use this command.")
-            )
+            yield ErrorEmbed("Permission Denied", "You do not have permission to use this command.")
+            
         elif isinstance(error, commands.MissingPermissions):
             for check in ctx.command.checks:
                 try:
@@ -63,8 +62,7 @@ class ErrorHandler(commands.Cog):
                     if permissions and all([perm in permissions for perm in error.missing_permissions]):
                         break
 
-            await ctx.send(embed=
-                ErrorEmbed(
+            yield ErrorEmbed(
                     "Permission Denied",
                     "You do not have permission to use this command. ```diff\n"
                     f"{n.join(['+ ' + perm_format(x) for x in permissions if x not in error.missing_permissions])}".strip() + n +
@@ -72,7 +70,7 @@ class ErrorHandler(commands.Cog):
                     "\n```",
 
                 )
-            )
+            
         elif isinstance(error, commands.BotMissingPermissions):
             for check in ctx.command.checks:
                 try:
@@ -84,8 +82,7 @@ class ErrorHandler(commands.Cog):
                     permissions = frame.f_locals.get('perms') # Output: {'administrator': True, 'manage_messages': True}
                     if permissions and all([perm in permissions for perm in error.missing_permissions]):
                         break
-            await ctx.send(embed=
-                ErrorEmbed(
+            yield ErrorEmbed(
                     "Squid Missing Permissions",
                     "I do not have the correct permissions to execute this command. ```diff\n"
                     f"{n.join(['+ ' + perm_format(x) for x in permissions if x not in error.missing_permissions])}".strip() + n +
@@ -93,30 +90,26 @@ class ErrorHandler(commands.Cog):
                     "\n```",
 
                 )
-            )
+            
         elif isinstance(error, discord.HTTPException):
-            await ctx.send(embed=
-                ErrorEmbed(
+            yield ErrorEmbed(
                     "Unknown HTTP Exception",
                     f"Please report this in the support server.\n```{error.text}````",
                 )
-            )
+            
         elif isinstance(error, commands.CommandInvokeError):
             log.error(
                 f"{error.original.__class__.__name__}: {error.original} (In {ctx.command.name})\n"
                 f"Traceback:\n{''.join(traceback.format_tb(error.original.__traceback__))}"
             )
 
-            try:
-                await ctx.send(embed=
-                    ErrorEmbed(
-                        "Unknown Error",
-                        "Please report this in the support server.\n"
-                        f"```{error.original.__class__.__name__}: {error.original}```",
-                    )
+            yield ErrorEmbed(
+                    "Unknown Error",
+                    "Please report this in the support server.\n"
+                    f"```{error.original.__class__.__name__}: {error.original}```",
                 )
-            except discord.HTTPException:
-                pass
+                
+            
 
 
 def setup(bot):

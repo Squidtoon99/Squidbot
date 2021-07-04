@@ -1,12 +1,29 @@
 import discord
 from discord.ext import commands
-from discord_components import Button, ButtonStyle
+from discord.enums import ButtonStyle
 from ink.core import squidcommand
 
 
 def to_emoji(c):
     base = 0x1F1E6
     return chr(base + c)
+
+class Confirm(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+        self.value = None
+
+    # When the confirm button is pressed, set the inner value to `True` and
+    # stop the View from listening to more input.
+    # We also send the user an ephemeral message that we're confirming their choice.
+    @discord.ui.button(label='👍', style=discord.ButtonStyle.green)
+    async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
+        self.stop()
+
+    # This one is similar to the confirmation button except sets the inner value to `False`
+    @discord.ui.button(label='👎', style=discord.ButtonStyle.red)
+    async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
+        self.stop()
 
 
 class Polls(commands.Cog):
@@ -30,13 +47,14 @@ class Polls(commands.Cog):
             name=ctx.author.name, icon_url=ctx.author.avatar.url
         )
 
+        view = Confirm()
         await ctx.reply(
             embed=embed,
-            components=[[Button(style=ButtonStyle.green, label="👍", id='yes'), Button(style=ButtonStyle.red, label="👎", id='no')]]
+            view=view
         )
     
     @commands.Cog.listener()
-    async def on_button_click(self, res):
-        await res.respond(content="Poll Recieved", ephimeral=True)
+    async def on_interaction(self, res):
+        await res.response.defer(ephemeral=True)
 
 

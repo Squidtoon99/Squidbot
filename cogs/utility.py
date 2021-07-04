@@ -12,6 +12,3 @@ class Utility(commands.Cog):
     @squidcommand() 
     async def ping(self, ctx):
         yield "Bot Latency: `{:,}` ms".format(int(self.bot.latency*1000))
-
-def setup(bot):
-    bot.add_cog(Utility(bot))
