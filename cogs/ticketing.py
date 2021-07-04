@@ -2,7 +2,7 @@ import traceback
 
 from discord import Color, Embed, HTTPException, User, PermissionOverwrite
 from ink.core import squidcommand
-from ink.utils import TextMember, LinePaginator, Embed, ErrorEmbed
+from ink.utils import TextMember, LinePaginator, ErrorEmbed
 from discord.ext import commands 
  
 
