@@ -36,9 +36,7 @@ class ErrorHandler(commands.Cog):
                     "This command can only be used in direct message.",
                 )
             
-        elif isinstance(error, commands.MissingRequiredArgument) or isinstance(
-            error, commands.BadArgument
-        ):
+        elif isinstance(error, (commands.MissingRequiredArgument, commands.BadArgument)):
             embed = ErrorEmbed(
                 "Incorrect Arguments",
                 "Check the arguments you provided for the command"
