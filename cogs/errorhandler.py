@@ -21,7 +21,7 @@ class ErrorHandler(commands.Cog):
             async for _yield in ctx.command.on_error(ctx, error):
                 yield _yield 
             return 
-        elif hasattr(ctx.cog, "on_error"):
+        if hasattr(ctx.cog, "on_error"):
             async for _yield in ctx.cog.on_error(ctx, error) and not bypass:
                 yield _yield
         
@@ -29,13 +29,13 @@ class ErrorHandler(commands.Cog):
             yield None # nothing here handlers will ignore
         elif isinstance(error, commands.NoPrivateMessage):
             yield ErrorEmbed("No DM Command", "This command cannot be used in direct message.")
-            
+    
         elif isinstance(error, commands.PrivateMessageOnly):
             yield ErrorEmbed(
                     "DM Only Command",
                     "This command can only be used in direct message.",
                 )
-            
+    
         elif isinstance(error, (commands.MissingRequiredArgument, commands.BadArgument)):
             embed = ErrorEmbed(
                 "Incorrect Arguments",
@@ -47,7 +47,7 @@ class ErrorHandler(commands.Cog):
             yield embed
         elif isinstance(error, commands.NotOwner):
             yield ErrorEmbed("Permission Denied", "You do not have permission to use this command.")
-            
+    
         elif isinstance(error, commands.MissingPermissions):
             for check in ctx.command.checks:
                 try:
@@ -68,7 +68,7 @@ class ErrorHandler(commands.Cog):
                     "\n```",
 
                 )
-            
+    
         elif isinstance(error, commands.BotMissingPermissions):
             for check in ctx.command.checks:
                 try:
@@ -88,13 +88,13 @@ class ErrorHandler(commands.Cog):
                     "\n```",
 
                 )
-            
+    
         elif isinstance(error, discord.HTTPException):
             yield ErrorEmbed(
                     "Unknown HTTP Exception",
                     f"Please report this in the support server.\n```{error.text}````",
                 )
-            
+    
         elif isinstance(error, commands.CommandInvokeError):
             log.error(
                 f"{error.original.__class__.__name__}: {error.original} (In {ctx.command.name})\n"
@@ -106,8 +106,8 @@ class ErrorHandler(commands.Cog):
                     "Please report this in the support server.\n"
                     f"```{error.original.__class__.__name__}: {error.original}```",
                 )
-                
-            
+        
+    
 
 
 def setup(bot):
