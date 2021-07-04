@@ -8,6 +8,7 @@ def to_emoji(c):
     base = 0x1F1E6
     return chr(base + c)
 
+
 class Confirm(discord.ui.View):
     def __init__(self):
         super().__init__()
@@ -16,12 +17,12 @@ class Confirm(discord.ui.View):
     # When the confirm button is pressed, set the inner value to `True` and
     # stop the View from listening to more input.
     # We also send the user an ephemeral message that we're confirming their choice.
-    @discord.ui.button(label='👍', style=discord.ButtonStyle.green)
+    @discord.ui.button(label="👍", style=discord.ButtonStyle.green)
     async def confirm(self, *_: discord.ui.Button):
         self.stop()
 
     # This one is similar to the confirmation button except sets the inner value to `False`
-    @discord.ui.button(label='👎', style=discord.ButtonStyle.red)
+    @discord.ui.button(label="👎", style=discord.ButtonStyle.red)
     async def cancel(self, *_: discord.ui.Button):
         self.stop()
 
@@ -48,13 +49,8 @@ class Polls(commands.Cog):
         )
 
         view = Confirm()
-        await ctx.reply(
-            embed=embed,
-            view=view
-        )
-    
+        await ctx.reply(embed=embed, view=view)
+
     @commands.Cog.listener()
     async def on_interaction(self, res):
         await res.response.defer(ephemeral=True)
-
-
