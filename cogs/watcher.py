@@ -18,7 +18,7 @@ class CustomEventHandler(FileSystemEventHandler):
         print(f"event type: {event.event_type}  path : {event.src_path}")
 
     """
-    The event handler for
+    The event handler for file changes
     """
 
     def __init__(

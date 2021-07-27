@@ -1,21 +1,23 @@
-import asyncio
 import importlib
 import inspect
 import io
 import logging
 import sys
 import traceback
-import types
 import aioredis
 import discord
 from discord.ext import commands
 from discord.ext.commands import errors
 from discord.ext.commands.bot import _is_submodule
+from discord.ext.colors import XKCDColor
 from jishaku.functools import AsyncSender
 from jishaku.paginators import PaginatorInterface, WrappedPaginator
-from jishaku.repl import AsyncCodeExecutor, all_inspections
+from jishaku.repl import AsyncCodeExecutor
 from jishaku.repl.scope import Scope
+from ink.utils import RedisDict
+from .context import Context
 import locale
+import os 
 
 locale.setlocale(locale.LC_ALL,'en_US.UTF-8')
 __all__ = ("SquidBot",)
@@ -29,7 +31,7 @@ class SquidBot(commands.AutoShardedBot):
 
         # config
         self.log = logging.getLogger(type(self).__name__)
-        self.color = getattr(discord.Color, self.config.get('color','blurple'), discord.Color.blurple)()
+        self.color = getattr(XKCDColor, self.config.get('color','blurple'), discord.Color.blurple)()
         self.mention_author = self.config.get('mention-author', False)
 
         # databases 
@@ -37,7 +39,7 @@ class SquidBot(commands.AutoShardedBot):
         # scope for jsk
         self.scope = Scope()
 
-        super().__init__(allowed_mentions=discord.AllowedMentions.none(), **config)
+        super().__init__(allowed_mentions=discord.AllowedMentions.none(),intents=discord.Intents.all(), **config)
 
         for ext in config.get("extensions", []):
             try:
@@ -51,12 +53,21 @@ class SquidBot(commands.AutoShardedBot):
 
         self.run(config["token"], reconnect=True)
 
+    @property 
+    def plugins(self):
+        return {v:k for v,k in self.cogs.items() if v.lower() in self.config['plugins']}
+    def storage(self, plugin_name : str, guild_id : int):
+        return RedisDict(self.redis, prefix=f'storage:{plugin_name}:{guild_id}')
+
     async def create(self):
-        self.redis = await aioredis.create_redis(
-            self.config['redis-uri'],
-            encoding='utf8'
-        )
-        await self.redis.ping()
+        if self.redis is None:
+            print("connecting to redis")
+            uri = os.getenv('redishost', self.config.get('redis-uri'))
+            self.redis = await aioredis.create_redis(
+                uri,
+                encoding='utf8'
+            )
+            await self.redis.ping()
 
     def load_extension(self, name, *, package=None):
         name = self._resolve_name(name, package)
@@ -154,6 +165,8 @@ class SquidBot(commands.AutoShardedBot):
             self._BotBase__extensions[key] = lib
 
 
+    async def on_connect(self) -> None:
+        await self.create() 
 
     async def on_ready(self) -> None:
         await self.create()
@@ -204,7 +217,8 @@ class SquidBot(commands.AutoShardedBot):
         if message.author.bot:
             return
 
-        ctx = await self.get_context(message)
+        ctx = await self.get_context(message, cls=Context)
+        self.dispatch("context", ctx)
         coro = self.invoke(ctx)
 
         await self.process_output(ctx, coro)
@@ -223,13 +237,14 @@ class SquidBot(commands.AutoShardedBot):
                 continue
 
             self.last_result = result
-
+            kwargs = {'mention_author':self.mention_author}
             if isinstance(result, discord.File):
-                send(await ctx.reply(file=result, mention_author=self.mention_author))
-            elif isinstance(result, discord.Embed) and ctx.channel.permissions_for(ctx.me).embed_links:
-                send(await ctx.reply(embed=result, mention_author=self.mention_author))
+                kwargs['file'] = result 
             elif isinstance(result, PaginatorInterface):
                 send(await result.send_to(ctx))
+                continue
+            elif isinstance(result, discord.Embed) and ctx.channel.permissions_for(ctx.me).embed_links:
+                kwargs['embed'] = result
             else:
                 o_embed = None
                 if isinstance(result, discord.Embed):
@@ -242,21 +257,12 @@ class SquidBot(commands.AutoShardedBot):
                 if len(result) <= 4050:
                     if result.strip() == "":
                         result = "\u200b"
-                    kwargs = dict(mention_author=self.mention_author)
                     perms = ctx.channel.permissions_for(ctx.me)
                     if not perms.send_messages:
-                        if perms.add_reactions:
-                            try:
-                                await ctx.message.add_reaction('‼️')
-                            except:
-                                pass
-                        dest = ctx.author.send 
-                        kwargs['content'] = "I cannot send messages in that channel!\n"
                         kwargs['embed'] = o_embed or discord.Embed(
                                 description=result.replace(self.http.token, "[token omitted]")
                             , color=self.color)
                     else:
-                        dest = ctx.reply
 
                         if not perms.embed_links:
                             kwargs['content'] = result 
@@ -264,25 +270,17 @@ class SquidBot(commands.AutoShardedBot):
                             kwargs['embed'] = discord.Embed(
                                 description=result.replace(self.http.token, "[token omitted]")
                             , color=self.color)
-
-                    send(
-                        await dest(**kwargs)
-                    )
-
                 elif len(result) < 50_000:  # File "full content" preview limit
                     # Discord's desktop and web client now supports an interactive file content
                     #  display for files encoded in UTF-8.
                     # Since this avoids escape issues and is more intuitive than pagination for
                     #  long results, it will now be prioritized over PaginatorInterface if the
                     #  resultant content is below the filesize threshold
-                    send(
-                        await ctx.reply(
-                            file=discord.File(
+                    kwargs['file'] = discord.File(
                                 filename="output.py",
                                 fp=io.BytesIO(result.encode("utf-8")),
                             )
-                        )
-                    )
+                        
 
                 else:
                     # inconsistency here, results get wrapped in codeblocks when they are too large
@@ -296,4 +294,34 @@ class SquidBot(commands.AutoShardedBot):
                     interface = PaginatorInterface(ctx.bot, paginator, owner=ctx.author)
 
                     send(await interface.send_to(ctx))
+                    continue
+                    
+            if kwargs:
+                dm = False 
+                missing = []
+                # checks 
+                p = ctx.channel.permissions_for(ctx.me)
+                if not p.send_messages:
+                    dm = True 
+                    missing.append('- Send Messages')
+                if kwargs.get('file') and not p.attach_files:
+                    dm = True 
+                    missing.append('- Attach Files')
+                if kwargs.get('embed') and not p.embed_links:
+                    dm = True 
+                    missing.append('- Embeds')
+                
+                if dm:
+                    if p.add_reactions:
+                        try:
+                            await ctx.message.add_reaction('‼️')
+                        except:
+                            pass
+                    kwargs['content'] = "**Missing Permissions**\n```diff\n"+ '\n'.join(missing) + "\n```\n" + kwargs.get('content','')
+                    dest = ctx.author.send 
+                else:
+                    dest = ctx.reply 
+                
+                send(await dest(**kwargs))
+
         scope.clear_intersection(arg_dict)

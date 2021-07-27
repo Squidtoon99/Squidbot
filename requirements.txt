@@ -6,7 +6,6 @@ attrs
 braceexpand
 chardet
 git+https://github.com/Rapptz/discord.py
-discord-components
 fuzzywuzzy
 humanize
 idna
@@ -19,4 +18,8 @@ typing-extensions
 watchdog
 yarl
 pyparsing
-discord-components
+discord-ext-colours
+orjson
+dnspython 
+emoji
+wand

@@ -4,7 +4,7 @@ import operator
 import traceback
 
 from discord import Color, Embed
-from discord.ext.commands import Cog
+from discord.ext.commands import Cog, has_permissions
 from ink.core import squidcommand
 from pyparsing import (CaselessLiteral, Forward, Group, Literal, Optional,
                        Word, ZeroOrMore, alphas, nums, oneOf)

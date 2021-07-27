@@ -2,13 +2,14 @@ import traceback
 
 from discord import Color, Embed, HTTPException, User, PermissionOverwrite
 from ink.core import squidcommand
-from ink.utils import TextMember, LinePaginator, ErrorEmbed
+from ink.utils import TextMember, LinePaginator, ErrorEmbed 
 from discord.ext import commands
 
 
 class Ticketing(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        
 
     async def _get_overwrites(self, ctx, roles):
         overwrites = {
@@ -45,7 +46,7 @@ class Ticketing(commands.Cog):
     async def ticketsetup(self, ctx):
         msg = await ctx.send(embed=Embed("Setting up..."))
 
-        data = await tools.get_data(self.bot, ctx.guild.id)
+        data = await get_data(self.bot, ctx.guild.id)
         if await ctx.guild.get_channel(data[2]):
             await msg.edit(ErrorEmbed("The bot has already been set up."))
             return
