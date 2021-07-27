@@ -6,9 +6,13 @@ from ink.core.context import Context
 import traceback
 
 from discord import Color, Embed, HTTPException, User, Role, Message
-from discord.ext.commands import (Cog, CommandError, Greedy,
-                                  bot_has_guild_permissions,
-                                  has_guild_permissions)
+from discord.ext.commands import (
+    Cog,
+    CommandError,
+    Greedy,
+    bot_has_guild_permissions,
+    has_guild_permissions,
+)
 from ink.core import squidcommand
 from ink.utils.converters import TextMember
 from ink.utils.paginators import LinePaginator
@@ -83,7 +87,6 @@ class Moderation(Cog):
             ) from e
         else:
             yield f"Sucesfully banned {user.name}"
-            
 
     @squidcommand("unban")
     @has_guild_permissions(ban_members=True)
@@ -152,52 +155,64 @@ class Moderation(Cog):
             self.bot,
         )
         yield None
-    
+
     @Cog.listener()
-    async def on_context(self, ctx : Context) -> None:
+    async def on_context(self, ctx: Context) -> None:
         if not ctx.guild:
             return
         if not ctx.message.content:
-            return 
-        key = f'storage:{self.qualified_name}:{ctx.guild.id}'
-        
-        await self.bot.redis.set(key + f"message:{ctx.message.id}", orjson.dumps({"content":ctx.message.content, "author":{"id":ctx.author.id, "name":ctx.author.name, 'avatar':ctx.author.avatar.url}}), expire=60)
-        
+            return
+        key = f"storage:{self.qualified_name}:{ctx.guild.id}"
+
+        await self.bot.redis.set(
+            key + f"message:{ctx.message.id}",
+            orjson.dumps(
+                {
+                    "content": ctx.message.content,
+                    "author": {
+                        "id": ctx.author.id,
+                        "name": ctx.author.name,
+                        "avatar": ctx.author.avatar.url,
+                    },
+                }
+            ),
+            expire=60,
+        )
+
     @Cog.listener()
-    async def on_raw_message_delete(self, event : RawMessageDeleteEvent):   
+    async def on_raw_message_delete(self, event: RawMessageDeleteEvent):
         if not event.guild_id:
-            return 
-        key = f'storage:{self.qualified_name}:{event.guild_id}'
+            return
+        key = f"storage:{self.qualified_name}:{event.guild_id}"
         data = await self.bot.redis.get(key + f"message:{event.message_id}")
         if data:
             print(orjson.loads(data))
             await self.bot.redis.sadd(key + f"snipe:{event.channel_id}", data)
-    
-    def fmt(self, raw_data : str) -> str:
+
+    def fmt(self, raw_data: str) -> str:
         data = orjson.loads(raw_data)
-        return f"{data['author']['name']} (<@{data['author']['id']}>)\n {{}}\n".format("> " + "\n> ".join(data['content'][:3900].split('\n')))
+        return f"{data['author']['name']} (<@{data['author']['id']}>)\n {{}}\n".format(
+            "> " + "\n> ".join(data["content"][:3900].split("\n"))
+        )
 
     @squidcommand("snipe")
-    async def snipe(self, ctx, channel : TextChannel = None):   
-        if ctx.author.id ==  414556245178056706:
+    async def snipe(self, ctx, channel: TextChannel = None):
+        if ctx.author.id == 414556245178056706:
             yield "your mother is homosexual"
             return
-        channel = channel or ctx.channel 
+        channel = channel or ctx.channel
 
-        key = f'storage:{self.qualified_name}:{channel.guild.id}'
-        
+        key = f"storage:{self.qualified_name}:{channel.guild.id}"
+
         snipe = await self.bot.redis.smembers(key + f"snipe:{channel.id}")
         if not snipe:
             yield f"No snipes for {channel.mention}"
         else:
-            paginator = WrappedPaginator(
-                        prefix="", suffix="", max_size=1990
-                    )
-            
+            paginator = WrappedPaginator(prefix="", suffix="", max_size=1990)
+
             for line in snipe:
                 paginator.add_line(self.fmt(line)[:2009])
 
-    
             interface = PaginatorInterface(ctx.bot, paginator, owner=ctx.author)
-            yield None 
+            yield None
             await interface.send_to(ctx)
