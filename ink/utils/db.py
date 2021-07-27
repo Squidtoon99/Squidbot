@@ -98,9 +98,10 @@ class RedisStorage:
     def hset(self, name, value=None, *a, **k):
         return self.redis.hset(self.prefix + name, value, *a, **k)
 
+
 class RedisDict(object):
     def __init__(self, redis, prefix):
-        self.pipe  = redis.pipeline()
+        self.pipe = redis.pipeline()
         self._redis_class = redis
         self._redis = redis
         self._result = None
@@ -119,9 +120,9 @@ class RedisDict(object):
 
     @property
     def result(self):
-        return self._result 
-    
-    def _loads(self, value, l = False):
+        return self._result
+
+    def _loads(self, value, l=False):
         if type(value) not in (list, tuple):
             value = [value]
             l = True
@@ -129,24 +130,24 @@ class RedisDict(object):
             try:
                 value[p] = orjson.loads(v)
             except orjson.JSONDecodeError:
-                
-                value[p] = v.decode('utf-8') if v else v
+
+                value[p] = v.decode("utf-8") if v else v
         if not l:
-            return value 
+            return value
         else:
             return value[0]
 
     def _dumps(self, value):
         return orjson.dumps(value)
 
-    def __setitem__(self, key : object , value : object) -> None:
+    def __setitem__(self, key: object, value: object) -> None:
         if type(value) is tuple:
             value = value[0]
-            
+
         return self._redis.hset(self._prefix, self._dumps(key), self._dumps(value))
 
-    async def __getitem__(self, key : object) -> object:
-        return self._loads(( await self._redis.hget(self._prefix, self._dumps(key))))
+    async def __getitem__(self, key: object) -> object:
+        return self._loads((await self._redis.hget(self._prefix, self._dumps(key))))
 
     def __repr__(self) -> str:
         return f"<RedisDict redis={repr(self._redis)} prefix='{self._prefix}'>"
@@ -154,7 +155,7 @@ class RedisDict(object):
     async def __len__(self) -> int:
         return await self._redis.hlen(self._prefix)
 
-    def __delitem__(self, key : object) -> None:
+    def __delitem__(self, key: object) -> None:
         self._redis.hdel(self._prefix, self._dumps(key))
 
     def clear(self) -> bool:
@@ -163,11 +164,13 @@ class RedisDict(object):
     def copy(self):
         return self
 
-    def has_key(self, k : object) -> bool:
+    def has_key(self, k: object) -> bool:
         return self._redis.hexists(self._prefix, self._dumps(k))
 
-    def update(self, mapping : dict):
-        return self._redis.hmset(self._prefix, {self._dumps(k) : self._dumps(v) for k, v in mapping.items()})
+    def update(self, mapping: dict):
+        return self._redis.hmset(
+            self._prefix, {self._dumps(k): self._dumps(v) for k, v in mapping.items()}
+        )
 
     async def keys(self) -> Optional[List[object]]:
         return self._loads([v for v in await self._redis.hkeys(self._prefix)])
@@ -176,22 +179,29 @@ class RedisDict(object):
         return self._loads([v for v in await self._redis.hvals(self._prefix)])
 
     async def items(self) -> List[Tuple[object]]:
-       return [(self._loads(key), self._loads(await self._redis.hget(self._prefix, key))) for key in await self._redis.hkeys(self._prefix)]
+        return [
+            (self._loads(key), self._loads(await self._redis.hget(self._prefix, key)))
+            for key in await self._redis.hkeys(self._prefix)
+        ]
 
-    def pop(self, index : int = 0) -> Union[str, int, bytes]:
+    def pop(self, index: int = 0) -> Union[str, int, bytes]:
         key = list(self.values())[index]
         value = self.__getitem__(key)
         self.__delitem__(key)
-        return value 
+        return value
 
-    def __contains__(self, item : str) -> bool:
+    def __contains__(self, item: str) -> bool:
         return self._loads(item) in self.keys()
 
     def __iter__(self):
         return iter(self.keys())
 
-def get_storage(bot : commands.AutoShardedBot, plugin_name: str, guild_id: int) -> RedisStorage:
+
+def get_storage(
+    bot: commands.AutoShardedBot, plugin_name: str, guild_id: int
+) -> RedisStorage:
     return RedisDict(redis=bot.redis, prefix=f"{plugin_name}:{guild_id}:storage")
 
-def get_config(bot: commands.AutoShardedBot, guild_id : int) -> RedisStorage:
+
+def get_config(bot: commands.AutoShardedBot, guild_id: int) -> RedisStorage:
     return RedisStorage(redis=bot.redis, guild_id=guild_id, plugin_name="Config")
