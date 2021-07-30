@@ -14,10 +14,13 @@ from jishaku.functools import AsyncSender
 from jishaku.paginators import PaginatorInterface, WrappedPaginator
 from jishaku.repl import AsyncCodeExecutor
 from jishaku.repl.scope import Scope
+from jishaku.shim.paginator_170 import PaginatorEmbedInterface
 from ink.utils import RedisDict
 from .context import Context
 import locale
 import os 
+import aiohttp 
+import redis 
 
 locale.setlocale(locale.LC_ALL,'en_US.UTF-8')
 __all__ = ("SquidBot",)
@@ -36,6 +39,10 @@ class SquidBot(commands.AutoShardedBot):
 
         # databases 
         self.redis = None
+        self.sync_redis = None 
+
+        # aiohttp session for downloading 
+        self.session = None #
         # scope for jsk
         self.scope = Scope()
 
@@ -60,14 +67,42 @@ class SquidBot(commands.AutoShardedBot):
         return RedisDict(self.redis, prefix=f'storage:{plugin_name}:{guild_id}')
 
     async def create(self):
+        uri = os.getenv('redishost', self.config.get('redis-uri'))
         if self.redis is None:
             print("connecting to redis")
-            uri = os.getenv('redishost', self.config.get('redis-uri'))
+            
             self.redis = await aioredis.create_redis(
                 uri,
                 encoding='utf8'
             )
             await self.redis.ping()
+
+        if self.sync_redis is None:
+            print("connecting to sync redis")
+            if uri.startswith('redis://'):
+                uri = uri[8:]
+            hostport, *options = uri.split(",")
+            host, _, port = hostport.partition(":")
+            arguments = {}
+            for option in options:
+                opt, _, value = option.partition("=")
+                if opt == "port":
+                    value = int(value)
+                elif opt == "ssl":
+                    value = value.lower() == "true"
+                elif opt == "abortConnect":
+                    continue
+                arguments[opt] = value
+            self.sync_redis = redis.StrictRedis(host, port=int(port), decode_responses=True, **arguments)
+            
+            self.sync_redis.ping()
+
+        if self.session is None:
+            self.session = aiohttp.ClientSession(loop=self.loop)
+
+    async def close(self):
+        await self.session.close()
+        return await super().close()
 
     def load_extension(self, name, *, package=None):
         name = self._resolve_name(name, package)
@@ -151,7 +186,7 @@ class SquidBot(commands.AutoShardedBot):
                         continue
                     obj = getattr(lib, obj_name)
                     if isinstance(obj, commands.CogMeta):
-                        self.add_cog(obj(self))
+                        self.add_cog(obj(bot=self))
                         c = False
                 
                 if c:
@@ -214,14 +249,13 @@ class SquidBot(commands.AutoShardedBot):
         # await super(self, commands.AutoShardedBot).invoke(ctx)
 
     async def on_message(self, message: discord.Message) -> None:
-        if message.author.bot:
-            return
+        
 
         ctx = await self.get_context(message, cls=Context)
         self.dispatch("context", ctx)
         coro = self.invoke(ctx)
-
-        await self.process_output(ctx, coro)
+        if not message.author.bot:
+            await self.process_output(ctx, coro)
 
     async def process_output(self, ctx: commands.Context, coro):
 
@@ -238,11 +272,24 @@ class SquidBot(commands.AutoShardedBot):
 
             self.last_result = result
             kwargs = {'mention_author':self.mention_author}
+            perms = ctx.channel.permissions_for(ctx.me)
             if isinstance(result, discord.File):
                 kwargs['file'] = result 
             elif isinstance(result, PaginatorInterface):
                 send(await result.send_to(ctx))
                 continue
+            elif isinstance(result, WrappedPaginator):
+                if perms.embed_links or not perms.send_messages:
+                    p = PaginatorEmbedInterface(ctx.bot, result, owner=ctx.author)
+                else:
+                    p = PaginatorInterface(ctx.bot, result, owner=ctx.author)
+                
+                if perms.send_messages:
+                    await p.send_to(ctx)
+                else:
+                    await p.send_to(ctx.author)
+                continue 
+
             elif isinstance(result, discord.Embed) and ctx.channel.permissions_for(ctx.me).embed_links:
                 kwargs['embed'] = result
             else:

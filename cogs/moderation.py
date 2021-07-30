@@ -1,3 +1,4 @@
+import typing
 from discord.channel import TextChannel
 from discord.raw_models import RawMessageDeleteEvent
 from jishaku.paginators import WrappedPaginator
@@ -178,10 +179,11 @@ class Moderation(Cog):
         return f"{data['author']['name']} (<@{data['author']['id']}>)\n {{}}\n".format("> " + "\n> ".join(data['content'][:3900].split('\n')))
 
     @squidcommand("snipe")
-    async def snipe(self, ctx, channel : TextChannel = None):   
+    async def snipe(self, ctx, channel : typing.Optional[TextChannel], index : int = 0):   
         if ctx.author.id ==  414556245178056706:
             yield "your mother is homosexual"
             return
+
         channel = channel or ctx.channel 
 
         key = f'storage:{self.qualified_name}:{channel.guild.id}'
@@ -197,7 +199,4 @@ class Moderation(Cog):
             for line in snipe:
                 paginator.add_line(self.fmt(line)[:2009])
 
-    
-            interface = PaginatorInterface(ctx.bot, paginator, owner=ctx.author)
-            yield None 
-            await interface.send_to(ctx)
+            yield paginator

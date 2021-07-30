@@ -4,13 +4,23 @@ from urllib.parse import urlparse
 import time
 import discord
 import dns.resolver
-from discord.ext import commands
+from discord.ext import commands, tasks
 from ink.core.command import squidcommand
 from ink.core.context import Context
 from ink.utils.db import RedisDict
 from emoji import UNICODE_EMOJI 
 import numpy 
 import unicodedata
+import json 
+import itertools 
+
+def grouper(n, iterable):
+    it = iter(iterable)
+    while True:
+        chunk = tuple(itertools.islice(it, n))
+        if not chunk:
+            return
+        yield chunk
 
 def better_round(num : int, base : int = 5) -> int:
     return base * round(num / base)
@@ -79,7 +89,30 @@ def repeated_text(s):
 class AutoMod(commands.Cog):
     def __init__(self, bot):
         self.bot : commands.AutoShardedBot = bot 
+        self.message_purge_loop.start() 
+    
+    def cog_unload(self):
+        self.message_purge_loop.stop()
+    
+    @tasks.loop(seconds=0.2)
+    async def message_purge_loop(self):
+        for channel in await self.bot.redis.smembers("purge:channels"):
+            data = await self.bot.redis.smembers(f"purge:{channel}")
+            await self.bot.redis.srem(f"purge:{channel}", *data)
+            await self.bot.redis.srem("purge:channels", channel)
+            
 
+            if chn := self.bot.get_channel(int(channel)):
+                chunks = [discord.Object(id=int(i)) for i in data]
+                print(chunks)
+                for chunk in grouper(100, chunks):
+                    print("deleting chunk of", len(chunk), "in", chn.name, "(", chn.id, ")")
+                    await chn.delete_messages(chunk)
+    
+    @message_purge_loop.before_loop 
+    async def waiter(self):
+        await self.bot.wait_until_ready() 
+    
     @squidcommand("automod")
     async def automod_cmd(self, ctx, check : str, choice : bool, action : str):
         checks = ['links', 'caps', 'mentions', 'emojis', 'spam', 'repeated_text', 'newlines', 'images', "zalgo", "all"]
@@ -97,7 +130,11 @@ class AutoMod(commands.Cog):
         else:
             await ctx.storage.clear()
         yield await ctx.storage.keys()
-            
+    
+    async def mass_delete_handle(self, ctx : Context):
+        await self.bot.redis.sadd('purge:channels', str(ctx.channel.id))
+        await self.bot.redis.sadd(f'purge:{ctx.channel.id}', str(ctx.message.id))
+
     async def handle_checkfailure(self, error : AutoModCheckFailure, actions : dict):
         print(f"{error.check} check failed with message: {error.message}\n Message Content: {error.context.message.content}")
         coros = []
@@ -105,9 +142,10 @@ class AutoMod(commands.Cog):
         for action, values in actions.items():
             if action == "delete":
                 if ctx.channel.permissions_for(ctx.me).manage_messages:
-                    coros.append(ctx.message.delete())
-                if ctx.channel.permissions_for(ctx.me).send_messages and ctx.channel.permissions_for(ctx.me).embed_links:
-                   coros.append(ctx.send(embed=discord.Embed(color=self.bot.color, title=f"Automod {error.check}", description='\u200b' + error.message).set_author(icon_url=ctx.author.avatar.url, name=ctx.message.content[:10] + ('...' if len(ctx.message.content) > 10 else '')), delete_after=3))
+                    coros.append(self.mass_delete_handle(ctx))
+                #await ctx.message.add_reaction("✅")
+                # if ctx.channel.permissions_for(ctx.me).send_messages and ctx.channel.permissions_for(ctx.me).embed_links:
+                #    coros.append(ctx.send(embed=discord.Embed(color=self.bot.color, title=f"Automod {error.check}", description='\u200b' + error.message).set_author(icon_url=ctx.author.avatar.url, name=ctx.message.content[:10] + ('...' if len(ctx.message.content) > 10 else '')), delete_after=3))
             if action == "infraction":
                 self.bot.dispatch('member_infraction', ctx.author, values.get('infractions', 1))
             if action == "kick":
@@ -147,7 +185,6 @@ class AutoMod(commands.Cog):
         per = data.get('per', 5)
 
         links = link_crazy.findall(context.message.content)
-        print("links:", links)
         linkCount = 0
         for link in set(links):
             p = urlparse(link)
@@ -163,7 +200,7 @@ class AutoMod(commands.Cog):
         if not linkCount:
             return 
         
-        key = f'check_links:{context.guild.id}:{context.author.id}:{better_round(int(time.time()), base=per)}' # implementing efficient caching 
+        key = f'check_links:{context.guild.id}:{context.author.id}:bucket-{better_round(int(time.time()), base=per)}' # implementing efficient caching 
         actualLinks = int((await self.bot.redis.get(key)) or 0) + linkCount
         await self.bot.redis.set(key, actualLinks, expire=per * 2)
         if actualLinks >= amount:
@@ -174,10 +211,9 @@ class AutoMod(commands.Cog):
         per = data.get('per', 5)
 
         invites  = invite_crazy.findall(context.message.content)
-        print("Invites:", invites)
         if not invites:
             return 
-        key = f'check_invites:{context.guild.id}:{context.author.id}:{better_round(int(time.time()), base=per)}' # implementing efficient caching 
+        key = f'check_invites:{context.guild.id}:{context.author.id}:bucket-{better_round(int(time.time()), base=per)}' # implementing efficient caching 
         invites = int((await self.bot.redis.get(key)) or 0) + len(set(invites))
         if invites:
             await self.bot.redis.set(key, invites, expire=per * 2)
@@ -190,8 +226,9 @@ class AutoMod(commands.Cog):
         if not context.message.content:
             return
         caps = int(100 * (len([i for i in context.message.content if i.isupper()]) / len(context.message.content)))
-        print(caps, '%')
+        
         if caps > percent and len(context.message.content) > 3:
+            print(caps, '%')
             raise AutoModCheckFailure("caps", context, f"Excessive use of caps ({caps}%)")
 
     async def check_zalgo(self, context : commands.Context, data : dict):
@@ -202,7 +239,7 @@ class AutoMod(commands.Cog):
         amount = data.get('amount', 15)
         per = data.get('per', 3)
 
-        key = f'check_newlines:{context.guild.id}:{context.author.id}:{better_round(int(time.time()), base=per)}' # implementing efficient caching 
+        key = f'check_newlines:{context.guild.id}:{context.author.id}:bucket-{better_round(int(time.time()), base=per)}' # implementing efficient caching 
         newlines = int((await self.bot.redis.get(key)) or 0) + context.message.content.strip().count('\n')
         if newlines:
             await self.bot.redis.set(key, newlines, expire=per * 2)
@@ -216,7 +253,7 @@ class AutoMod(commands.Cog):
         amount = data.get('amount', 5)
         per = data.get('per', 5)
         
-        key = f'check_mentions:{context.guild.id}:{context.author.id}:{better_round(int(time.time()), base=per)}' # implementing efficient caching 
+        key = f'check_mentions:{context.guild.id}:{context.author.id}:bucket-{better_round(int(time.time()), base=per)}' # implementing efficient caching 
         mentions = int((await self.bot.redis.get(key)) or 0) + len(context.message.mentions)
         if mentions:
             await self.bot.redis.set(key, mentions, expire=per * 2)
@@ -229,7 +266,7 @@ class AutoMod(commands.Cog):
         amount = data.get('amount', 7)
         per = data.get('per', 5)
 
-        key = f'check_emojis:{context.guild.id}:{context.author.id}:{better_round(int(time.time()), base=per)}'
+        key = f'check_emojis:{context.guild.id}:{context.author.id}:bucket-{better_round(int(time.time()), base=per)}'
 
         emoji_count = sum(1 for _ in emoji_crazy.finditer(context.message.content)) + len([i for i in context.message.content if i in UNICODE_EMOJI['en']])
         if not emoji_count:
@@ -246,12 +283,11 @@ class AutoMod(commands.Cog):
         amount = data.get('amount', 5)
         per = data.get('per', 3)
 
-        key = f"check_spam:{context.guild.id}:{context.author.id}:{better_round(int(time.time()), base=per)}"
+        key = f"check_spam:{context.guild.id}:{context.author.id}:bucket-{better_round(int(time.time()), base=per)}"
         messages = max(int((await self.bot.redis.get(key)) or 0),0) + 1
 
         await self.bot.redis.set(key, messages, expire=per*2)
 
-        print("message count", messages)
         if messages > amount:
             raise AutoModCheckFailure("spam", context, f"Sending messages too quickly ({messages:,}/{per:,}s)")
 
@@ -261,12 +297,11 @@ class AutoMod(commands.Cog):
         
         if not context.message.attachments:
             return
-        key = f"check_images:{context.guild.id}:{context.author.id}:{better_round(int(time.time()), base=per)}"
+        key = f"check_images:{context.guild.id}:{context.author.id}:bucket-{better_round(int(time.time()), base=per)}"
         images = max(int((await self.bot.redis.get(key)) or 0),0) + len(context.message.attachments)
 
         await self.bot.redis.set(key, images, expire=per*2)
 
-        print("image count", images)
         if images > amount:
             raise AutoModCheckFailure("images", context, f"Sending images too quickly ({images:,}/{per:,}s)")
 
@@ -275,7 +310,7 @@ class AutoMod(commands.Cog):
         per = data.get('per', 30)
 
         # multiple messages
-        key = f"check_repeated_text:{context.guild.id}:{better_round(int(time.time()), base=per)}"
+        key = f"check_repeated_text:{context.guild.id}:bucket-{better_round(int(time.time()), base=per)}"
 
         await self.bot.redis.hincrby(key, context.message.content.strip(), 1)
         await self.bot.redis.expire(key, per+1)
@@ -298,13 +333,12 @@ class AutoMod(commands.Cog):
             print("repeated second check", '[', repeated,']', context.message.content)
             t = context.message.content[:8] + ('...' if len(context.message.content) >= 8 else '')
             raise  AutoModCheckFailure("repeated_text", context, f"Repeated text [{t}] ({amn}/{per}s)")
-        else:
-            print(amn, c, '[', repeated, ']')
+
 
     @commands.Cog.listener("on_context") 
     async def automod(self, ctx : Context) -> None:
-        if ctx.message.author.bot: return 
         if not ctx.message.guild:  return
+        if ctx.message.author.bot: return 
         
         ctx._storage = RedisDict(self.bot.redis, prefix=f"storage:{self.qualified_name}:{ctx.guild.id}" )
         checkNames = await ctx.storage.keys()

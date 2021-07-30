@@ -7,6 +7,8 @@ RUN apt-get update && \
     sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
     dpkg-reconfigure --frontend=noninteractive locales
 
+RUN apt-get install libmagickwand-dev
+
 ENV LANG en_US.UTF-8
 ENV LC_ALL en_US.UTF-8
 

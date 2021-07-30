@@ -1,11 +1,7 @@
 import discord
 from discord.ext import commands
-from discord.enums import ButtonStyle
 from ink.core import squidcommand
 import shlex
-import random
-from ascii_graph import Pyasciigraph
-import itertools 
 
 def to_emoji(c):
     base = 0x1F1E6

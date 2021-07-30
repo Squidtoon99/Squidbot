@@ -16,9 +16,9 @@ spec:
     app: discord-bot
   spec:
     containers:
-    - name: discord-bot
-      image: squidtoon99/my-bot:v4.2
-      - name: redishost
-        value: redis
-      ports:
-      - containerPort: 80 
+      - name: discord-bot
+        image: squidtoon99/squid:squidbot.k8s.v3
+        ports:
+        - containerPort: 80 
+    imagePullSecrets:
+      - name: regcred

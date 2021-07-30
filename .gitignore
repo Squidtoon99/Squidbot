@@ -133,3 +133,6 @@ config.json
 
 #vscode
 .vscode/*
+
+# Redis
+*.rdb
