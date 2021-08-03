@@ -18,9 +18,9 @@ from jishaku.shim.paginator_170 import PaginatorEmbedInterface
 from ink.utils import RedisDict
 from .context import Context
 import locale
-import os 
-import aiohttp 
-import redis 
+import os
+import aiohttp
+import redis
 
 locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
 __all__ = ("SquidBot",)
@@ -41,10 +41,10 @@ class SquidBot(commands.AutoShardedBot):
 
         # databases
         self.redis = None
-        self.sync_redis = None 
+        self.sync_redis = None
 
-        # aiohttp session for downloading 
-        self.session = None #
+        # aiohttp session for downloading
+        self.session = None  #
         # scope for jsk
         self.scope = Scope()
 
@@ -76,28 +76,26 @@ class SquidBot(commands.AutoShardedBot):
         return RedisDict(self.redis, prefix=f"storage:{plugin_name}:{guild_id}")
 
     async def create(self):
-        uri = os.getenv('redishost', self.config.get('redis-uri'))
+        uri = os.getenv("redishost", self.config.get("redis-uri"))
         if self.redis is None:
             print("connecting to redis")
-            
+
             self.redis = await aioredis.create_redis(
-                uri,
-                encoding='utf8',
-                loop=self.loop
+                uri, encoding="utf8", loop=self.loop
             )
             await self.redis.ping()
 
         if self.sync_redis is None:
             print("connecting to sync redis")
-            
-            if uri.startswith('redis://'):
+
+            if uri.startswith("redis://"):
                 uri = uri[8:]
-            
-            if uri == "squid-redis.default.svc.cluster.local": # k8s deployment
+
+            if uri == "squid-redis.default.svc.cluster.local":  # k8s deployment
                 self.sync_redis = redis.StrictRedis(uri, decode_responses=True)
-                self.sync_redis.ping() 
+                self.sync_redis.ping()
             else:
-                hostport, *options = uri.split(",") # ty stackoverflow
+                hostport, *options = uri.split(",")  # ty stackoverflow
                 host, _, port = hostport.partition(":")
                 arguments = {}
                 for option in options:
@@ -109,8 +107,10 @@ class SquidBot(commands.AutoShardedBot):
                     elif opt == "abortConnect":
                         continue
                     arguments[opt] = value
-                self.sync_redis = redis.StrictRedis(host, port=int(port), decode_responses=True, **arguments)
-                
+                self.sync_redis = redis.StrictRedis(
+                    host, port=int(port), decode_responses=True, **arguments
+                )
+
                 self.sync_redis.ping()
 
         if self.session is None:
@@ -268,7 +268,6 @@ class SquidBot(commands.AutoShardedBot):
         # await super(self, commands.AutoShardedBot).invoke(ctx)
 
     async def on_message(self, message: discord.Message) -> None:
-        
 
         ctx = await self.get_context(message, cls=Context)
         self.dispatch("context", ctx)
@@ -290,7 +289,7 @@ class SquidBot(commands.AutoShardedBot):
                 continue
 
             self.last_result = result
-            kwargs = {'mention_author':self.mention_author}
+            kwargs = {"mention_author": self.mention_author}
             perms = ctx.channel.permissions_for(ctx.me)
             if isinstance(result, discord.File):
                 kwargs["file"] = result
@@ -302,15 +301,18 @@ class SquidBot(commands.AutoShardedBot):
                     p = PaginatorEmbedInterface(ctx.bot, result, owner=ctx.author)
                 else:
                     p = PaginatorInterface(ctx.bot, result, owner=ctx.author)
-                
+
                 if perms.send_messages:
                     await p.send_to(ctx)
                 else:
                     await p.send_to(ctx.author)
-                continue 
+                continue
 
-            elif isinstance(result, discord.Embed) and ctx.channel.permissions_for(ctx.me).embed_links:
-                kwargs['embed'] = result
+            elif (
+                isinstance(result, discord.Embed)
+                and ctx.channel.permissions_for(ctx.me).embed_links
+            ):
+                kwargs["embed"] = result
             else:
                 o_embed = None
                 if isinstance(result, discord.Embed):

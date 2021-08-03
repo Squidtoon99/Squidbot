@@ -86,12 +86,16 @@ class MonkeyWatcher(Cog):
     async def watcher(self):
         for name, module in self.bot.extensions.copy().items():
             folder = False
-            if module.__file__.endswith('__init__.py'):
+            if module.__file__.endswith("__init__.py"):
                 # it's a folder
-                folder = True 
+                folder = True
                 fpath = module.__file__[:-11]
             if folder:
-                stat = {name : int(os.stat(os.path.join(fpath, name)).st_mtime) for name in os.listdir(fpath) if name.endswith('.py')}
+                stat = {
+                    name: int(os.stat(os.path.join(fpath, name)).st_mtime)
+                    for name in os.listdir(fpath)
+                    if name.endswith(".py")
+                }
             else:
                 stat = int(os.stat(inspect.getfile(module)).st_mtime)
 
