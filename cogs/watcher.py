@@ -73,14 +73,15 @@ class Watcher(Cog):
     def cog_unload(self):
         self.stop()
 
+
 class MonkeyWatcher(Cog):
     def __init__(self, bot):
-        self.bot = bot 
+        self.bot = bot
         self.cache = {}
         self.log = bot.log.getChild(type(self).__name__)
 
-        self.watcher.start() 
-    
+        self.watcher.start()
+
     @loop(seconds=1)
     async def watcher(self):
         for name, module in self.bot.extensions.copy().items():
@@ -95,11 +96,11 @@ class MonkeyWatcher(Cog):
                 stat = int(os.stat(inspect.getfile(module)).st_mtime)
 
             if name not in self.cache:
-                self.cache[name] = stat 
-                continue 
-            
+                self.cache[name] = stat
+                continue
+
             if stat != self.cache.get(name):
-                self.cache[name] = stat 
+                self.cache[name] = stat
                 self.log.debug(f"Reloading: {name}")
                 try:
                     self.bot.reload_extension(name)
@@ -107,20 +108,22 @@ class MonkeyWatcher(Cog):
                     traceback.print_exc()
                 else:
                     self.log.info(f"Reloaded: {name}")
-            
-    @watcher.before_loop 
+
+    @watcher.before_loop
     async def waiter(self):
         await self.bot.wait_until_ready()
         return True
-    
+
     def cog_unload(self):
         self.watcher.stop()
 
+
 def setup(bot):
-    import sys 
-    if sys.platform == 'win32':
+    import sys
+
+    if sys.platform == "win32":
         cog = Watcher(bot)
     else:
         cog = MonkeyWatcher(bot)
-    
+
     bot.add_cog(cog)

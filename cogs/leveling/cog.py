@@ -94,6 +94,14 @@ class Leveling(commands.Cog):
     @squidcommand("rank", aliases=['r'])
     @commands.bot_has_guild_permissions(attach_files=True)
     async def rank(self, ctx : Context, member : discord.Member = None):
+        """View the rank of yourself or a member
+
+        Arguments:
+            member (discord.Member, optional): The member you want to view the rank of. Defaults to None.
+
+        Requires:
+            [ attach files ]
+        """
         member = member or ctx.author
         info = self.get_player_info(member)
         if member.bot:
@@ -124,3 +132,5 @@ class Leveling(commands.Cog):
                 img_data = image.make_blob("png")
         
         yield discord.File(fp=BytesIO(img_data), filename="jaydumb.png") # thanks jay
+
+    

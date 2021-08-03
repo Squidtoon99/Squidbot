@@ -1,24 +1,28 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
- name: discord-bot-deployment
+ name: squid-bot
  labels:
-  app: discord-bot
+  app: squid-bot
+  type: discord-bot
 
 spec:
  replicas: 1
  selector:
   matchLabels:
-   app: discord-bot
+   app: squid-bot
  template:
   metadata:
    labels:
-    app: discord-bot
+    app: squid-bot
   spec:
     containers:
-      - name: discord-bot
-        image: squidtoon99/squid:squidbot.k8s.v3
+      - name: squid-bot
+        image: squidtoon99/squid:squidbot.k8s.v4.4
         ports:
         - containerPort: 80 
+        env:
+          - name: redishost
+            value: redis://squid-redis.default.svc.cluster.local
     imagePullSecrets:
       - name: regcred
