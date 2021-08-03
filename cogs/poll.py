@@ -2,7 +2,9 @@ import discord
 from discord.ext import commands
 from ink.core import squidcommand
 import shlex
+
 g = ":blue_square:"
+
 
 def make_graph(package, listdata):
     count = package[1]

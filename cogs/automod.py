@@ -11,8 +11,9 @@ from ink.utils.db import RedisDict
 from emoji import UNICODE_EMOJI
 import numpy
 import unicodedata
-import json 
-import itertools 
+import json
+import itertools
+
 
 def grouper(n, iterable):
     it = iter(iterable)
@@ -107,31 +108,38 @@ def repeated_text(s):
 
 class AutoMod(commands.Cog):
     def __init__(self, bot):
-        self.bot : commands.AutoShardedBot = bot 
-        self.message_purge_loop.start() 
-    
+        self.bot: commands.AutoShardedBot = bot
+        self.message_purge_loop.start()
+
     def cog_unload(self):
         self.message_purge_loop.stop()
-    
+
     @tasks.loop(seconds=0.2)
     async def message_purge_loop(self):
         for channel in await self.bot.redis.smembers("purge:channels"):
             data = await self.bot.redis.smembers(f"purge:{channel}")
             await self.bot.redis.srem(f"purge:{channel}", *data)
             await self.bot.redis.srem("purge:channels", channel)
-            
 
             if chn := self.bot.get_channel(int(channel)):
                 chunks = [discord.Object(id=int(i)) for i in data]
                 print(chunks)
                 for chunk in grouper(100, chunks):
-                    print("deleting chunk of", len(chunk), "in", chn.name, "(", chn.id, ")")
+                    print(
+                        "deleting chunk of",
+                        len(chunk),
+                        "in",
+                        chn.name,
+                        "(",
+                        chn.id,
+                        ")",
+                    )
                     await chn.delete_messages(chunk)
-    
-    @message_purge_loop.before_loop 
+
+    @message_purge_loop.before_loop
     async def waiter(self):
-        await self.bot.wait_until_ready() 
-    
+        await self.bot.wait_until_ready()
+
     @squidcommand("automod")
     async def automod_cmd(self, ctx, check: str, choice: bool, action: str):
         checks = [
@@ -160,20 +168,22 @@ class AutoMod(commands.Cog):
         else:
             await ctx.storage.clear()
         yield await ctx.storage.keys()
-    
-    async def mass_delete_handle(self, ctx : Context):
-        await self.bot.redis.sadd('purge:channels', str(ctx.channel.id))
-        await self.bot.redis.sadd(f'purge:{ctx.channel.id}', str(ctx.message.id))
 
-    async def handle_checkfailure(self, error : AutoModCheckFailure, actions : dict):
-        print(f"{error.check} check failed with message: {error.message}\n Message Content: {error.context.message.content}")
+    async def mass_delete_handle(self, ctx: Context):
+        await self.bot.redis.sadd("purge:channels", str(ctx.channel.id))
+        await self.bot.redis.sadd(f"purge:{ctx.channel.id}", str(ctx.message.id))
+
+    async def handle_checkfailure(self, error: AutoModCheckFailure, actions: dict):
+        print(
+            f"{error.check} check failed with message: {error.message}\n Message Content: {error.context.message.content}"
+        )
         coros = []
         ctx = error.context
         for action, values in actions.items():
             if action == "delete":
                 if ctx.channel.permissions_for(ctx.me).manage_messages:
                     coros.append(self.mass_delete_handle(ctx))
-                #await ctx.message.add_reaction("✅")
+                # await ctx.message.add_reaction("✅")
                 # if ctx.channel.permissions_for(ctx.me).send_messages and ctx.channel.permissions_for(ctx.me).embed_links:
                 #    coros.append(ctx.send(embed=discord.Embed(color=self.bot.color, title=f"Automod {error.check}", description='\u200b' + error.message).set_author(icon_url=ctx.author.avatar.url, name=ctx.message.content[:10] + ('...' if len(ctx.message.content) > 10 else '')), delete_after=3))
             if action == "infraction":
@@ -246,9 +256,9 @@ class AutoMod(commands.Cog):
             else:
                 linkCount += 1
         if not linkCount:
-            return 
-        
-        key = f'check_links:{context.guild.id}:{context.author.id}:bucket-{better_round(int(time.time()), base=per)}' # implementing efficient caching 
+            return
+
+        key = f"check_links:{context.guild.id}:{context.author.id}:bucket-{better_round(int(time.time()), base=per)}"  # implementing efficient caching
         actualLinks = int((await self.bot.redis.get(key)) or 0) + linkCount
         await self.bot.redis.set(key, actualLinks, expire=per * 2)
         if actualLinks >= amount:
@@ -258,10 +268,10 @@ class AutoMod(commands.Cog):
         amount = data.get("amount", 1)
         per = data.get("per", 5)
 
-        invites  = invite_crazy.findall(context.message.content)
+        invites = invite_crazy.findall(context.message.content)
         if not invites:
-            return 
-        key = f'check_invites:{context.guild.id}:{context.author.id}:bucket-{better_round(int(time.time()), base=per)}' # implementing efficient caching 
+            return
+        key = f"check_invites:{context.guild.id}:{context.author.id}:bucket-{better_round(int(time.time()), base=per)}"  # implementing efficient caching
         invites = int((await self.bot.redis.get(key)) or 0) + len(set(invites))
         if invites:
             await self.bot.redis.set(key, invites, expire=per * 2)
@@ -273,14 +283,22 @@ class AutoMod(commands.Cog):
         percent = data.get("percent", 70)
         if not context.message.content:
             return
-        caps = int(100 * (len([i for i in context.message.content if i.isupper()]) / len(context.message.content)))
-        
-        if caps > percent and len(context.message.content) > 3:
-            print(caps, '%')
-            raise AutoModCheckFailure("caps", context, f"Excessive use of caps ({caps}%)")
+        caps = int(
+            100
+            * (
+                len([i for i in context.message.content if i.isupper()])
+                / len(context.message.content)
+            )
+        )
 
-    async def check_zalgo(self, context : commands.Context, data : dict):
-        percent = data.get('percent', 70)
+        if caps > percent and len(context.message.content) > 3:
+            print(caps, "%")
+            raise AutoModCheckFailure(
+                "caps", context, f"Excessive use of caps ({caps}%)"
+            )
+
+    async def check_zalgo(self, context: commands.Context, data: dict):
+        percent = data.get("percent", 70)
 
     async def check_zalgo(self, context: commands.Context, data: dict):
         percent = data.get("percent", 70)
@@ -289,8 +307,10 @@ class AutoMod(commands.Cog):
         amount = data.get("amount", 15)
         per = data.get("per", 3)
 
-        key = f'check_newlines:{context.guild.id}:{context.author.id}:bucket-{better_round(int(time.time()), base=per)}' # implementing efficient caching 
-        newlines = int((await self.bot.redis.get(key)) or 0) + context.message.content.strip().count('\n')
+        key = f"check_newlines:{context.guild.id}:{context.author.id}:bucket-{better_round(int(time.time()), base=per)}"  # implementing efficient caching
+        newlines = int(
+            (await self.bot.redis.get(key)) or 0
+        ) + context.message.content.strip().count("\n")
         if newlines:
             await self.bot.redis.set(key, newlines, expire=per * 2)
 
@@ -302,11 +322,13 @@ class AutoMod(commands.Cog):
     async def check_mentions(self, context: commands.Context, data: dict):
         if not context.message.mentions:
             return
-        amount = data.get('amount', 5)
-        per = data.get('per', 5)
-        
-        key = f'check_mentions:{context.guild.id}:{context.author.id}:bucket-{better_round(int(time.time()), base=per)}' # implementing efficient caching 
-        mentions = int((await self.bot.redis.get(key)) or 0) + len(context.message.mentions)
+        amount = data.get("amount", 5)
+        per = data.get("per", 5)
+
+        key = f"check_mentions:{context.guild.id}:{context.author.id}:bucket-{better_round(int(time.time()), base=per)}"  # implementing efficient caching
+        mentions = int((await self.bot.redis.get(key)) or 0) + len(
+            context.message.mentions
+        )
         if mentions:
             await self.bot.redis.set(key, mentions, expire=per * 2)
 
@@ -320,7 +342,7 @@ class AutoMod(commands.Cog):
         amount = data.get("amount", 7)
         per = data.get("per", 5)
 
-        key = f'check_emojis:{context.guild.id}:{context.author.id}:bucket-{better_round(int(time.time()), base=per)}'
+        key = f"check_emojis:{context.guild.id}:{context.author.id}:bucket-{better_round(int(time.time()), base=per)}"
 
         emoji_count = sum(
             1 for _ in emoji_crazy.finditer(context.message.content)
@@ -340,7 +362,7 @@ class AutoMod(commands.Cog):
         per = data.get("per", 3)
 
         key = f"check_spam:{context.guild.id}:{context.author.id}:bucket-{better_round(int(time.time()), base=per)}"
-        messages = max(int((await self.bot.redis.get(key)) or 0),0) + 1
+        messages = max(int((await self.bot.redis.get(key)) or 0), 0) + 1
 
         await self.bot.redis.set(key, messages, expire=per * 2)
 
@@ -356,7 +378,9 @@ class AutoMod(commands.Cog):
         if not context.message.attachments:
             return
         key = f"check_images:{context.guild.id}:{context.author.id}:bucket-{better_round(int(time.time()), base=per)}"
-        images = max(int((await self.bot.redis.get(key)) or 0),0) + len(context.message.attachments)
+        images = max(int((await self.bot.redis.get(key)) or 0), 0) + len(
+            context.message.attachments
+        )
 
         await self.bot.redis.set(key, images, expire=per * 2)
 
@@ -392,17 +416,24 @@ class AutoMod(commands.Cog):
             return  # useless
 
         if repeated and (amn := c.count(repeated)) > amount:
-            print("repeated second check", '[', repeated,']', context.message.content)
-            t = context.message.content[:8] + ('...' if len(context.message.content) >= 8 else '')
-            raise  AutoModCheckFailure("repeated_text", context, f"Repeated text [{t}] ({amn}/{per}s)")
+            print("repeated second check", "[", repeated, "]", context.message.content)
+            t = context.message.content[:8] + (
+                "..." if len(context.message.content) >= 8 else ""
+            )
+            raise AutoModCheckFailure(
+                "repeated_text", context, f"Repeated text [{t}] ({amn}/{per}s)"
+            )
 
+    @commands.Cog.listener("on_context")
+    async def automod(self, ctx: Context) -> None:
+        if not ctx.message.guild:
+            return
+        if ctx.message.author.bot:
+            return
 
-    @commands.Cog.listener("on_context") 
-    async def automod(self, ctx : Context) -> None:
-        if not ctx.message.guild:  return
-        if ctx.message.author.bot: return 
-        
-        ctx._storage = RedisDict(self.bot.redis, prefix=f"storage:{self.qualified_name}:{ctx.guild.id}" )
+        ctx._storage = RedisDict(
+            self.bot.redis, prefix=f"storage:{self.qualified_name}:{ctx.guild.id}"
+        )
         checkNames = await ctx.storage.keys()
         checks = {}
         for checkName in filter(lambda x: x.startswith("check_"), checkNames):

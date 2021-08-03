@@ -4,6 +4,7 @@ from ..utils import RedisDict
 
 __all__ = ("Context",)
 
+
 class Context(context.Context):
     def __init__(self, **kwargs):
         super(Context, self).__init__(**kwargs)
