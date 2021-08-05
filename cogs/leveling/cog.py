@@ -23,6 +23,7 @@ from ink.utils.decorators import asyncexe
 
 executor = ThreadPoolExecutor()
 
+
 class Leveling(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -40,8 +41,11 @@ class Leveling(commands.Cog):
         self.players = defaultdict(dict)
         self._get_level_xp = lambda n: 5 * (n ** 2) + 50 * n + 100
 
-        self.font_factory = lambda size : Font(
-            path=__file__[:-6] + "Aquire.otf", color=Color("white"), antialias=True, size=size or 80
+        self.font_factory = lambda size: Font(
+            path=__file__[:-6] + "Aquire.otf",
+            color=Color("white"),
+            antialias=True,
+            size=size or 80,
         )
 
     def get_player(self, member: discord.Object):
@@ -108,13 +112,11 @@ class Leveling(commands.Cog):
             self.bot.dispatch("level_up", context, player, og_lvl, player.lvl)
 
     def make_card(self, template, mask, img):
-        img.resize(256, 256)    
-                    
+        img.resize(256, 256)
+
         img.composite_channel("all_channels", mask, "screen")
 
-        img.transparent_color(
-            Color("white"), alpha=0, fuzz=0
-        )
+        img.transparent_color(Color("white"), alpha=0, fuzz=0)
         template.composite(img, left=20, top=20)
 
         return template
@@ -126,26 +128,41 @@ class Leveling(commands.Cog):
             draw.fill_opacity = 0.8
             if info:
                 width = int(info["remaining_xp"] / info["level_xp"] * 600)
-            
+
                 draw.rectangle(left=300, top=215, width=width, height=50, radius=20)
-            
-            
+
             # name
             # draw.font = self.font
             # draw.text(300, 500, f"{ctx.author.name} #{ctx.author.tag}")
             with Image(blob=self.template) as template:
 
-                draw(template) # attaching the progress bar
-                template.caption(str(member.name)[:16], left=275, top=50, width=600, height=500, font=self.font_factory(80 if len(member.name) <= 14 else 50), gravity="north") # their name centered up top
+                draw(template)  # attaching the progress bar
+                template.caption(
+                    str(member.name)[:16],
+                    left=275,
+                    top=50,
+                    width=600,
+                    height=500,
+                    font=self.font_factory(80 if len(member.name) <= 14 else 50),
+                    gravity="north",
+                )  # their name centered up top
                 if info:
-                    template.caption(f"{info['remaining_xp']} - {info['level_xp']}", top=50, left=325, width=600, height=375, font=self.font_factory(35), gravity="center") # xp with a dash because font doesn't have / support
+                    template.caption(
+                        f"{info['remaining_xp']} - {info['level_xp']}",
+                        top=50,
+                        left=325,
+                        width=600,
+                        height=375,
+                        font=self.font_factory(35),
+                        gravity="center",
+                    )  # xp with a dash because font doesn't have / support
                 with Image(blob=self.mask) as mask:
                     with Image(blob=pfp) as profile:
-                        
+
                         if member.avatar.is_animated():
                             with Image() as base:
                                 for img in profile.sequence:
-                                    
+
                                     with template.clone() as t_clone:
                                         res = self.make_card(t_clone, mask, img)
                                         base.sequence.append(res)
@@ -155,21 +172,23 @@ class Leveling(commands.Cog):
                                         frame.delay = profile.sequence[0].delay
                                 base.loop = 0
 
-                                fmt = "gif" 
+                                fmt = "gif"
                                 base.type = "optimize"
                                 base.format = "gif"
                                 bffr = BytesIO()
                                 base.save(file=bffr)
                                 bffr.seek(0)
-                                return  discord.File(fp=bffr,filename="jaydumb.gif")
-                                #img_data = base.make_blob(fmt)
+                                return discord.File(fp=bffr, filename="jaydumb.gif")
+                                # img_data = base.make_blob(fmt)
 
                         else:
                             card = self.make_card(template, mask, profile)
 
                             fmt = "png"
-                            return discord.File(fp=BytesIO(card.make_blob(fmt)), filename=f"jaydumb.{fmt}")  # thanks jay
-
+                            return discord.File(
+                                fp=BytesIO(card.make_blob(fmt)),
+                                filename=f"jaydumb.{fmt}",
+                            )  # thanks jay
 
     @squidcommand("rank", aliases=["r"])
     @commands.bot_has_guild_permissions(attach_files=True)
@@ -189,12 +208,11 @@ class Leveling(commands.Cog):
         print(url)
         if member.bot:
             raise commands.CommandError("Bot's don't have profiles")
-        
+
         async with ctx.channel.typing():
             async with self.bot.session.get(url) as req:
-                pfp = await req.read() 
-        
+                pfp = await req.read()
+
             yield await self.rank_card(pfp, member, info)
-                
-                #img_data = image.make_blob(str("gif" if member.avatar.is_animated() else "png"))
-    
+
+            # img_data = image.make_blob(str("gif" if member.avatar.is_animated() else "png"))

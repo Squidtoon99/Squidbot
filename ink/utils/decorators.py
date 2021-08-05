@@ -1,7 +1,7 @@
-import functools 
+import functools
 import asyncio
 
-__all__ = ("asyncexe", )
+__all__ = ("asyncexe",)
 
 # obv ty bobo
 def asyncexe(executor=None):
@@ -11,5 +11,7 @@ def asyncexe(executor=None):
             partial = functools.partial(func, *args, **kwargs)
             loop = asyncio.get_event_loop()
             return loop.run_in_executor(executor, partial)
+
         return wrapper
+
     return decorator
