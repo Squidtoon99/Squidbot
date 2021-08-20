@@ -110,7 +110,8 @@ class Leveling(commands.Cog):
         if player.lvl != og_lvl:
             self.bot.dispatch("level_up", context, player, og_lvl, player.lvl)
 
-    def make_card(self, template, mask, img):
+    @staticmethod
+    def make_card(template, mask, img):
         img.resize(256, 256)
 
         img.composite_channel("all_channels", mask, "screen")
