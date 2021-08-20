@@ -11,7 +11,6 @@ from wand.color import Color
 from wand.font import Font
 from io import BytesIO
 import aiohttp
-from wand.drawing import Drawing
 from wand.sequence import Sequence
 from wand.display import display
 import random
