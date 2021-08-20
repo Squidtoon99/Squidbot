@@ -190,7 +190,8 @@ class Moderation(Cog):
             print(orjson.loads(data))
             await self.bot.redis.sadd(key + f"snipe:{event.channel_id}", data)
 
-    def fmt(self, raw_data: str) -> str:
+    @staticmethod
+    def fmt(raw_data: str) -> str:
         data = orjson.loads(raw_data)
         return f"{data['author']['name']} (<@{data['author']['id']}>)\n {{}}\n".format(
             "> " + "\n> ".join(data["content"][:3900].split("\n"))
