@@ -173,10 +173,10 @@ class RedisDict(object):
         )
 
     async def keys(self) -> Optional[List[object]]:
-        return self._loads([v for v in await self._redis.hkeys(self._prefix)])
+        return self._loads(list(await self._redis.hkeys(self._prefix)))
 
     async def values(self) -> Optional[List[Tuple[object, object]]]:
-        return self._loads([v for v in await self._redis.hvals(self._prefix)])
+        return self._loads(list(await self._redis.hvals(self._prefix)))
 
     async def items(self) -> List[Tuple[object]]:
         return [
