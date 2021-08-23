@@ -187,7 +187,8 @@ class Moderation(Cog):
             data['id'] = event.message_id
             await self.bot.redis.zadd(f"snipe:{self.snipe_version}:{event.guild_id}:{event.channel_id}",datetime.timestamp(datetime.now()), orjson.dumps(data).decode())
 
-    def fmt(self, raw_data) -> str:
+    @staticmethod
+    def fmt(raw_data) -> str:
         data, timestamp = raw_data
         return f"{data['author']['name']} (<@{data['author']['id']}>) <t:{int(timestamp)}:R>\n {{}}\n".format(
             "> " + "\n> ".join(data["content"][:3900].split("\n"))

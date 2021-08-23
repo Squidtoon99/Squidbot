@@ -122,7 +122,8 @@ class RedisDict(object):
     def result(self):
         return self._result
 
-    def _loads(self, value, l=False):
+    @staticmethod
+    def _loads(value, l=False):
         if type(value) not in (list, tuple):
             value = [value]
             l = True
@@ -137,7 +138,8 @@ class RedisDict(object):
         else:
             return value[0]
 
-    def _dumps(self, value):
+    @staticmethod
+    def _dumps(value):
         return orjson.dumps(value)
 
     def __setitem__(self, key: object, value: object) -> None:
@@ -173,10 +175,10 @@ class RedisDict(object):
         )
 
     async def keys(self) -> Optional[List[object]]:
-        return self._loads([v for v in await self._redis.hkeys(self._prefix)])
+        return self._loads(list(await self._redis.hkeys(self._prefix)))
 
     async def values(self) -> Optional[List[Tuple[object, object]]]:
-        return self._loads([v for v in await self._redis.hvals(self._prefix)])
+        return self._loads(list(await self._redis.hvals(self._prefix)))
 
     async def items(self) -> List[Tuple[object]]:
         return [
