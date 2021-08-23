@@ -34,16 +34,13 @@ class Moderation(Cog):
         bot_pos = ctx.me.top_role.position
         # this checks if the user we are about to kick is lower than the person kicking
         if user_pos >= author_pos and (ctx.author.id != ctx.guild.owner_id):
-            raise CommandError(
-                f"{user.mention} has a role equal or higher than you."
-            )
+            raise CommandError(f"{user.mention} has a role equal or higher than you.")
 
         if bot_pos <= user_pos:
             raise CommandError(
                 f"My highest role position ({bot_pos}) is not high enough to {ctx.command.qualified_name} {user.mention} because their highest role is higher than mine ({user_pos})"
             )
-        
-        
+
     @squidcommand("kick")
     @has_guild_permissions(kick_members=True)
     @bot_has_guild_permissions(kick_members=True)
@@ -184,8 +181,12 @@ class Moderation(Cog):
         data = await self.bot.redis.get(key + f"message:{event.message_id}")
         if data:
             data = orjson.loads(data)
-            data['id'] = event.message_id
-            await self.bot.redis.zadd(f"snipe:{self.snipe_version}:{event.guild_id}:{event.channel_id}",datetime.timestamp(datetime.now()), orjson.dumps(data).decode())
+            data["id"] = event.message_id
+            await self.bot.redis.zadd(
+                f"snipe:{self.snipe_version}:{event.guild_id}:{event.channel_id}",
+                datetime.timestamp(datetime.now()),
+                orjson.dumps(data).decode(),
+            )
 
     @staticmethod
     def fmt(raw_data) -> str:
@@ -195,7 +196,7 @@ class Moderation(Cog):
         )
 
     @squidcommand("snipe")
-    async def snipe(self, ctx, channel: typing.Optional[TextChannel], pos : int = None):
+    async def snipe(self, ctx, channel: typing.Optional[TextChannel], pos: int = None):
         if ctx.author.id == 414556245178056706:
             yield "your mother is homosexual"
             return
@@ -205,14 +206,14 @@ class Moderation(Cog):
         data = await self.bot.redis.zrevrange(key, 0, -1, withscores=True)
         if pos is None:
             t = int(datetime.timestamp(datetime.now()))
-            
-            snipeData =   map(lambda x : (orjson.loads(x[0]), int(x[1])), data)
+
+            snipeData = map(lambda x: (orjson.loads(x[0]), int(x[1])), data)
 
             paginator = WrappedPaginator(prefix="", suffix="", max_size=1990)
 
-            for line in snipeData:  
+            for line in snipeData:
                 paginator.add_line(self.fmt(line)[:2009])
-            
+
             yield paginator
         else:
 
